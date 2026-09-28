@@ -302,6 +302,8 @@ def _receive_dict(self):
 }
 ```
 
+An optional `"theme"` (overlunky `THEME` id) overrides the default theme for `world`/`level`.
+
 The Lua script responds with the initial gamestate.
 
 **2. Step Command**

@@ -365,6 +365,10 @@ These can be overridden at runtime:
 obs, info = env.reset(hp=8, world=2)  # Override defaults
 ```
 
+`world` and `level` pick the starting level. The theme defaults to the one normally found there
+(Jungle for world 2, Tide Pool for world 4, Tiamat for 6-4, Hundun for 7-4); pass `theme` with an
+overlunky `THEME` id to get the alternative, e.g. `env.reset(world=2, theme=3)` for Volcana.
+
 ## Complete Example
 
 Here's a complete custom environment that rewards gold collection and goal-reaching:

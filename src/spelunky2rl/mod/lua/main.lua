@@ -24,6 +24,7 @@ local data = {
     command = "pass"
 }
 local tiles = nil
+local stolen_input_uid = nil
 
 local x, y, vel_x, vel_y, health, money, bombs, ropes, layer, map_info, face_left_player, holding_type_player, back_item, dist_to_goal, pos_type_matrix, char_state, can_jump = 
       0, 0, 0,     0,     0,      0,     0,     0,     0,     0,        0,                 0,                  0,         0,            0,               0,          false
@@ -42,6 +43,7 @@ local pf_goalx, pf_goaly = 0,0   -- exit cell coords
 local pf_dirty = true
 local last_distance = -1
 local pf_dist = {}
+local pf_tile_lookup = {}
 
 
 ---------------- AUX FUNCTIONS ----------------
@@ -191,7 +193,27 @@ end, SPAWN_TYPE.ANY,MASK.FLOOR)
 
 --------------- GAME CONTROL ----------------
 
-local function reset(seed, world, level)
+-- Theme of the first level of each world. Worlds 2 and 4 also have an alternative
+-- (Volcana, Temple) that can be requested explicitly with the `theme` reset option.
+local world_themes = {
+    THEME.DWELLING, THEME.JUNGLE, THEME.OLMEC, THEME.TIDE_POOL,
+    THEME.ICE_CAVES, THEME.NEO_BABYLON, THEME.SUNKEN_CITY, THEME.COSMIC_OCEAN,
+}
+
+local function theme_for(world, level)
+    if world == 6 and level == 4 then return THEME.TIAMAT end
+    if world == 7 and level == 4 then return THEME.HUNDUN end
+    return world_themes[world] or THEME.DWELLING
+end
+
+local function release_input()
+    if stolen_input_uid ~= nil then
+        return_input(stolen_input_uid)
+        stolen_input_uid = nil
+    end
+end
+
+local function reset(seed, world, level, theme)
     state.quest_flags = 1
     set_adventure_seed(seed, seed)
     play_adventure()
@@ -200,7 +222,7 @@ local function reset(seed, world, level)
     state.items.player_select[1].activated = true
     state.items.player_select[1].character = ENT_TYPE.CHAR_ANA_SPELUNKY
 
-    warp(world, level, world)
+    warp(world, level, theme or theme_for(world, level))
 end
 
 local function set_start_values(restart_data)
@@ -247,14 +269,14 @@ function count_dead_enemies()
 end
 
 function get_entities_info(x, y, layer)
-    mask = 0xFFFFFFFF & ~(MASK.DECORATION | MASK.BG | MASK.SHADOW | MASK.FLOOR | MASK.LIQUID | MASK.FX)
+    local mask = 0xFFFFFFFF & ~(MASK.DECORATION | MASK.BG | MASK.SHADOW | MASK.FLOOR | MASK.LIQUID | MASK.FX)
     local entities = get_entities_overlapping_hitbox(
         0, -- all types of entity
         mask,
         AABB:new(math.round(x-10), math.round(y+5), math.round(x+10), math.round(y-5)),
         layer
     )
-    info = {}
+    local info = {}
     for _, uid in ipairs(entities) do
         local entity = get_entity(uid)
         local ex, ey = get_position(uid)
@@ -281,7 +303,7 @@ function get_entities_info(x, y, layer)
             safe(dx, 0), safe(dy, 0),
             safe(vx, 0), safe(vy, 0),
             safe(get_entity_type(uid), 0),
-            safe(face_left, -1),
+            face_left and 1 or 0,
             safe(holding_type, 0),
         })
     end
@@ -405,7 +427,7 @@ set_callback(function()
         local start = get_performance_counter()
         -- SEND
         if data["command"] == "step" then
-            serialized_data = json.encode(get_info(data["data_to_send"]))
+            local serialized_data = json.encode(get_info(data["data_to_send"]))
             local finish = get_performance_counter()
             local freq = get_performance_frequency()
             local elapsed_time = (finish - start) / freq
@@ -417,12 +439,17 @@ set_callback(function()
             -- LOAD ITEMS, etc
             destroy_entities(data["ent_types_to_destroy"])
             set_start_values(data)
-            serialized_data = json.encode(get_info(data["data_to_send"]))
+            local serialized_data = json.encode(get_info(data["data_to_send"]))
             client:send(serialized_data .. "\n")
         end
 
         -- RECEIVE
         local line, err = client:receive("*l")
+        if not line then
+            -- Python side is gone: nothing will ever drive this instance again
+            print("spelunky2rl: connection lost (" .. tostring(err) .. "), exiting")
+            os.exit()
+        end
         data = json.decode(line)
         local finish = get_performance_counter()
         local freq = get_performance_frequency()
@@ -431,15 +458,14 @@ set_callback(function()
 
 
         if data["command"] == "reset" then
-            reset(data["seed"], data["world"], data["level"])
+            release_input()
+            reset(data["seed"], data["world"], data["level"], data["theme"])
             data["frames"] = 60
 
             -- INITIAL SETTINGS
             speedup = data["speedup"]
             state_updates = data["state_updates"]
-            if speedup then
-                set_speedhack(100)
-            end
+            set_speedhack(speedup and 100 or 1)
             manual_control = data["manual_control"]
             if data["god_mode"] then
                 god(true)
@@ -454,13 +480,16 @@ set_callback(function()
             local buttons = booleans_to_button_mask(last6)
 
             if not manual_control then
-                steal_input(get_local_players()[1].uid)
+                stolen_input_uid = get_local_players()[1].uid
+                steal_input(stolen_input_uid)
                 -- x, y go from -1 to 1
                 local input = buttons_to_inputs(python_input[1]-1, python_input[2]-1, buttons) -- arrays in lua start at 1
                 send_input(players[1].uid, input)
             end
 
         elseif data["command"] == "close" then
+            release_input()
+            set_speedhack(1)
             os.exit()
         end
 
