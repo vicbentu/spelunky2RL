@@ -216,10 +216,10 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         # Character state (clamp to valid range)
         char_state_raw = gamestate["basic_info"]["char_state"]
-        observation["char_state"] = np.int32(np.clip(char_state_raw, 0, 22))
+        observation["char_state"] = np.int64(np.clip(char_state_raw, 0, 22))
 
         # Can jump
-        observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
+        observation["can_jump"] = np.int64(int(gamestate["basic_info"]["can_jump"]))
 
         # Velocity
         observation["velocity"] = np.array([
@@ -228,12 +228,12 @@ class SpelunkyEnv(SpelunkyRLEngine):
         ], dtype=np.float32)
 
         # Facing direction
-        observation["facing_left"] = np.int32(int(gamestate["basic_info"]["face_left"]))
+        observation["facing_left"] = np.int64(int(gamestate["basic_info"]["face_left"]))
 
         # Resources
-        observation["health"] = np.int32(np.clip(gamestate["basic_info"]["health"], 0, 99))
-        observation["bombs"] = np.int32(np.clip(gamestate["basic_info"]["bombs"], 0, 99))
-        observation["ropes"] = np.int32(np.clip(gamestate["basic_info"]["ropes"], 0, 99))
+        observation["health"] = np.int64(np.clip(gamestate["basic_info"]["health"], 0, 99))
+        observation["bombs"] = np.int64(np.clip(gamestate["basic_info"]["bombs"], 0, 99))
+        observation["ropes"] = np.int64(np.clip(gamestate["basic_info"]["ropes"], 0, 99))
         observation["money"] = np.array([gamestate["basic_info"]["money"]], dtype=np.int32)
 
         # Items
@@ -244,10 +244,10 @@ class SpelunkyEnv(SpelunkyRLEngine):
         observation["powerups"] = np.array(gamestate["basic_info"]["powerups"], dtype=np.int32)
 
         # Level context
-        observation["layer"] = np.int32(np.clip(gamestate["basic_info"]["layer"], 0, 1))
-        observation["world"] = np.int32(np.clip(gamestate["basic_info"]["world"], 1, 16))
-        observation["level"] = np.int32(np.clip(gamestate["basic_info"]["level"], 1, 4))
-        observation["theme"] = np.int32(np.clip(gamestate["basic_info"]["theme"], 0, 19))
+        observation["layer"] = np.int64(np.clip(gamestate["basic_info"]["layer"], 0, 1))
+        observation["world"] = np.int64(np.clip(gamestate["basic_info"]["world"], 1, 16))
+        observation["level"] = np.int64(np.clip(gamestate["basic_info"]["level"], 1, 4))
+        observation["theme"] = np.int64(np.clip(gamestate["basic_info"]["theme"], 0, 19))
         observation["time"] = np.array([gamestate["basic_info"]["time"]], dtype=np.int32)
 
         return observation

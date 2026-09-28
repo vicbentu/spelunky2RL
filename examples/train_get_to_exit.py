@@ -182,6 +182,7 @@ def make_env(index: int):
             # Performance settings
             frames_per_step=6,   # 6 frames between actions (~10 actions/sec)
             speedup=True,        # Run game faster than real-time
+            state_updates=200,   # Extra logic frames per rendered frame: same dynamics, much faster
 
             # Training settings
             manual_control=False,  # AI control
@@ -235,7 +236,7 @@ if __name__ == "__main__":
         policy="MultiInputLstmPolicy",
         env=env,
         verbose=2,
-        device="cuda",  # Use "cpu" if no GPU available
+        device="auto",  # CUDA if available
 
         # Training parameters
         n_steps=TIMESTEPS_PER_ROLLOUT,

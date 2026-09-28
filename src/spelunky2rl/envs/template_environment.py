@@ -220,10 +220,10 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         # Example: Character state (ensure it's within valid range)
         char_state_raw = gamestate["basic_info"]["char_state"]
-        observation["char_state"] = np.int32(np.clip(char_state_raw, 0, 22))
+        observation["char_state"] = np.int64(np.clip(char_state_raw, 0, 22))
 
         # Example: Can jump (ensure boolean is converted to int)
-        observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
+        observation["can_jump"] = np.int64(int(gamestate["basic_info"]["can_jump"]))
 
         # Example: Distance to goal (if requested in data_to_send)
         # observation["dist_to_goal"] = np.array([gamestate["dist_to_goal"]], dtype=np.float32)

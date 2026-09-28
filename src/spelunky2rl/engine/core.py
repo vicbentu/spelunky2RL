@@ -38,6 +38,7 @@ class SpelunkyRLEngine(gym.Env):
             game_dir: Optional[str] = None,
             frames_per_step: int = 6,
             render_enabled: bool = False,
+            render_mode: Optional[str] = None,
             launcher: Union[str, Launcher] = "auto",
             renderer: str = "auto",
             launcher_options: Optional[Dict[str, Any]] = None,
@@ -58,6 +59,8 @@ class SpelunkyRLEngine(gym.Env):
             launcher: "auto" (Docker on Linux, native on Windows), "docker", "wine", "windows",
                 or a Launcher instance. Defaults can be changed with $SPELUNKY2RL_LAUNCHER.
             renderer: "auto" (GPU if Docker can use one, else CPU), "gpu" or "cpu". Linux only.
+            render_enabled / render_mode: capture frames for render(); render_mode="rgb_array"
+                (as passed by gymnasium.make) is the same as render_enabled=True.
             launcher_options: extra keyword arguments for the launcher, e.g. {"image": ...}.
             playlunky_dir: Windows only, folder with playlunky_launcher.exe.
             **kwargs: default reset options (see _game_reset).
@@ -68,8 +71,10 @@ class SpelunkyRLEngine(gym.Env):
         self.game_dir = game_dir or spelunky_dir
         self.frames_per_step = frames_per_step
         self.reset_options = getattr(self, "reset_options", {}) | kwargs
-        self.render_enabled = render_enabled
-        self.render_mode = 'rgb_array'
+        if render_mode not in (None, "rgb_array"):
+            raise ValueError(f"render_mode must be None or 'rgb_array', got {render_mode!r}")
+        self.render_enabled = render_enabled or render_mode == "rgb_array"
+        self.render_mode = "rgb_array" if self.render_enabled else None
         self.log_file = log_file
         self.log_info = log_info if log_info is not None else ["all"]
         self.step_timeout = step_timeout

@@ -90,3 +90,36 @@ def test_package_ships_the_mod_and_entity_names():
     assert (files("spelunky2rl") / "mod" / "lua" / "main.lua").is_file()
     assert (files("spelunky2rl") / "mod" / "lua" / "luasocket" / "socket_core.dll").is_file()
     assert spelunky2rl.id2name(23)["name"] == "FLOOR_DOOR_EXIT"
+
+
+@pytest.mark.parametrize("env_id", ["spelunky2rl/GetToExit-v0", "spelunky2rl/Default-v0", "spelunky2rl/Dummy-v0",
+                                    "spelunky2rl/GoldGrabber-v0", "spelunky2rl/EnemyKiller-v0"])
+def test_registered_envs_pass_gymnasium_checks(env_id):
+    import warnings
+
+    import gymnasium as gym
+    from conftest import FakeLauncher
+
+    launcher = FakeLauncher()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # the passive env checker warns on contract violations
+        env = gym.make(env_id, launcher=launcher)
+        try:
+            env.reset(seed=0)
+            for _ in range(5):
+                env.step(env.action_space.sample())
+        finally:
+            env.close()
+    assert env.unwrapped.render_mode is None
+
+
+def test_render_mode_enables_capture():
+    import gymnasium as gym
+    from conftest import FakeLauncher
+
+    env = gym.make("spelunky2rl/Dummy-v0", render_mode="rgb_array", launcher=FakeLauncher())
+    try:
+        assert env.unwrapped.render_enabled
+        assert "render_mode" not in env.unwrapped.reset_options
+    finally:
+        env.close()

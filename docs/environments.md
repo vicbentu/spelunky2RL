@@ -13,7 +13,17 @@ SpelunkyRL provides a flexible environment system built on [Gymnasium](https://g
 
 ## Pre-built Environments
 
-SpelunkyRL includes several ready-to-use environments in `src/spelunky2rl/envs/`:
+SpelunkyRL includes several ready-to-use environments in `src/spelunky2rl/envs/`. They are also
+registered with Gymnasium once `spelunky2rl` is imported:
+
+```python
+import gymnasium as gym
+import spelunky2rl  # registers the ids
+
+env = gym.make("spelunky2rl/GetToExit-v0", speedup=True, state_updates=200)
+# also: spelunky2rl/Default-v0, Dummy-v0, GoldGrabber-v0, EnemyKiller-v0
+# render_mode="rgb_array" enables render()
+```
 
 ### Dummy Environment
 
@@ -288,8 +298,8 @@ def gamestate_to_observation(self, gamestate):
     observation = {}
 
     observation["map_info"] = np.array(gamestate["map_info"], dtype=np.int32)
-    observation["char_state"] = np.int32(gamestate["basic_info"]["char_state"])
-    observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
+    observation["char_state"] = np.int64(gamestate["basic_info"]["char_state"])
+    observation["can_jump"] = np.int64(int(gamestate["basic_info"]["can_jump"]))
 
     return observation
 ```
@@ -421,8 +431,8 @@ class GoldRushEnv(SpelunkyRLEngine):
     def gamestate_to_observation(self, gamestate):
         return {
             "map_info": np.array(gamestate["map_info"], dtype=np.int32),
-            "char_state": np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22)),
-            "can_jump": np.int32(int(gamestate["basic_info"]["can_jump"])),
+            "char_state": np.int64(np.clip(gamestate["basic_info"]["char_state"], 0, 22)),
+            "can_jump": np.int64(int(gamestate["basic_info"]["can_jump"])),
             "gold": np.array([gamestate["basic_info"]["money"]], dtype=np.int32),
         }
 

@@ -109,7 +109,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         observation["map_info"] = multi_hot
 
-        observation["char_state"] = np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22))
-        observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
+        observation["char_state"] = np.int64(np.clip(gamestate["basic_info"]["char_state"], 0, 22))
+        observation["can_jump"] = np.int64(int(gamestate["basic_info"]["can_jump"]))
 
         return observation

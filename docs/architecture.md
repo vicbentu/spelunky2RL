@@ -358,8 +358,8 @@ Lua Gamestate → Python gamestate dict → gamestate_to_observation() → Gymna
 
 # gamestate_to_observation() converts to:
 {
-    "char_state": np.int32(12),
-    "can_jump": np.int32(1),
+    "char_state": np.int64(12),
+    "can_jump": np.int64(1),
     "map_info": np.array([[0, 0, 1, ...], ...], dtype=np.int32)
 }
 ```

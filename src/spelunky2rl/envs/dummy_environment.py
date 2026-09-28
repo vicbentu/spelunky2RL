@@ -68,6 +68,6 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
     def gamestate_to_observation(self, gamestate):
         observation = {}
-        observation["can_jump"] = np.int32(1)
+        observation["can_jump"] = np.int64(1)
 
         return observation
