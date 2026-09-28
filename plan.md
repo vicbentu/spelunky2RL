@@ -389,17 +389,22 @@ Todo verificable en Windows con el setup actual, o con tests unitarios sin juego
       `reward_function` con estados sintéticos.
 - [x] CI (GitHub Actions) con lint y tests, sin juego.
 
-### Fase 1. Capa de abstracción y lanzadores
+### Fase 1. Capa de abstracción y lanzadores — HECHA
 
-- [ ] `spelunkyRL/engine/launcher/`: interfaz común y `WindowsLauncher`, `WineLauncher`, `DockerLauncher`.
-      `core.py` deja de conocer `.exe`, pywin32 y psutil directamente.
-- [ ] Imports perezosos: `import spelunky2rl` funciona en Linux sin pywin32 ni `ctypes.windll`
-      (hoy fallan `core.py`, `window_management.py` y `frame_grabber.py`). Comprobado en CI.
-- [ ] `spelunkyRL/engine/frames/`: `Win32FrameSource`, `X11FrameSource` (xdotool + mss), `NullFrameSource`.
-      Solo se instancia si `render_enabled`.
-- [ ] Handshake de versión (decisión 11) en `main.lua` y en `core.py`.
-- [ ] Parámetro `renderer` (decisión 10).
-- [ ] Ejemplos y docs sin rutas `C:\`; ruta del juego por parámetro o variable de entorno.
+Verificado con el juego real: `DockerLauncher` y `WineLauncher` pasan `tests/integration`
+(episodio, semillas, 4 entornos en paralelo, arranque en paralelo con caché vacía, nada queda vivo).
+`WindowsLauncher` y `Win32FrameSource` están escritos pero **sin probar** (no hay Windows aquí).
+`X11FrameSource` captura el Xvfb correcto pero da imagen negra: se resuelve en la Fase 4 (render).
+
+- [x] `engine/launchers/`: `Launcher` base, `DockerLauncher`, `WineLauncher`, `WindowsLauncher`.
+      `core.py` ya no conoce `.exe`, pywin32 ni psutil.
+- [x] Imports perezosos: `import spelunky2rl` funciona en Linux sin pywin32 (tests en CI en Linux y Windows).
+- [x] `engine/frames/`: `Win32FrameSource`, `X11FrameSource` (mss, sin xdotool: la pantalla del Xvfb
+      de cada instancia), `NullFrameSource`. Solo se instancia si `render_enabled`.
+- [x] Handshake de versión (decisión 11) en `main.lua` y `engine/protocol.py`.
+- [x] Parámetro `renderer` (decisión 10).
+- [x] Ejemplos y docs sin rutas `C:\`; `game_dir` o `SPELUNKY2RL_GAME_DIR`.
+- [x] `cli.py`: `spelunky2rl doctor` y `spelunky2rl pull`.
 
 ### Fase 2. Validación de viabilidad — HECHA
 
@@ -409,15 +414,21 @@ Wine 10 + DXVK 3.1.1 en Xvfb, sin Steam, luasocket OK, sin mutex de instancia ú
 con GPU y sin ella, granja de enlaces elegida frente a overlay. Entornos reales (`dummy`,
 `get_to_exit`, `default_environment`) probados con un `_game_init` sustituido.
 
-### Fase 3. Imagen Docker del juego
+### Fase 3. Imagen Docker del juego — HECHA salvo publicar
 
-- [ ] Pasar `feasibility/docker/` a `docker/` limpio: versiones fijadas de Wine, DXVK, Playlunky,
-      Overlunky y gbe_fork; descarga en el build (sin binarios en el repo); `nvidia_icd.json`.
-- [ ] Entrypoint: ensamblar granja de enlaces, arrancar Xvfb, lanzar Playlunky con `--overlunky`,
-      esperar con `wineserver -w`, audio desactivado en el registro de Wine.
-- [ ] Mod empaquetado en la imagen como pack con solo `lua/`; montaje de desarrollo encima.
-- [ ] Volumen de caché de Playlunky por hash de `Spel2.exe`, con el bloqueo automático de la decisión 7.
-- [ ] Publicar la imagen con etiqueta igual a la versión del paquete.
+- [x] `docker/`: versiones fijadas con sha256 en `versions.env` (Playlunky 0.19.0, Overlunky whip
+      2026-09-16, gbe_fork 2026-09-16, DXVK 3.1.1); descarga en el build con `fetch_assets.sh`, que
+      también usa `scripts/setup_wine.sh`; `nvidia_icd.json`.
+- [x] Entrypoint: granja de enlaces, Xvfb, Playlunky con `--overlunky`, `wineserver -w`, audio desactivado.
+- [x] Mod empaquetado en la imagen como pack con solo `lua/`; montaje de desarrollo con `SPELUNKY2RL_DEV_MOD`.
+- [x] Caché de Playlunky por imagen y hash de `Spel2.exe` en `~/.cache/spelunky2rl`, con el bloqueo
+      automático de la decisión 7 (verificado con 4 arranques en frío en paralelo).
+- [ ] Publicar la imagen: `.github/workflows/docker.yml` lo hace al crear un tag `v<versión>`;
+      pendiente de push (ver `QUESTIONS.md`).
+
+Nota: las plantillas `overlunky.ini`/`playlunky.ini` viven en el paquete
+(`src/spelunky2rl/engine/launchers/config/`) y no en `docker/config/`, porque también las usan
+`WineLauncher` y `WindowsLauncher`; el Dockerfile las copia desde ahí.
 
 ### Fase 4. Headless fino y paralelismo
 
