@@ -1,18 +1,19 @@
-import os
-import socket
-import subprocess
-import json
 import atexit
-import psutil
+import socket
 import time
-from datetime import datetime
-from typing import Any, Dict, Tuple, List, Optional
 from collections import Counter
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
 
 from ..tools.id2name import id2name
+from .frames import FrameSource
+from .launchers import Launcher, make_launcher
+from .protocol import Connection, check_hello
+
+HELLO_TIMEOUT = 15.0  # the mod says hello right after connecting
 
 
 class SpelunkyRLEngine(gym.Env):
@@ -34,35 +35,52 @@ class SpelunkyRLEngine(gym.Env):
 
     def __init__(
             self,
-            spelunky_dir: str,
-            playlunky_dir: str,
+            game_dir: Optional[str] = None,
             frames_per_step: int = 6,
             render_enabled: bool = False,
+            launcher: Union[str, Launcher] = "auto",
+            renderer: str = "auto",
+            launcher_options: Optional[Dict[str, Any]] = None,
             console: bool = False,
             log_file: str = None,
             log_info: Optional[List[str]] = None,
             step_timeout: float = 60.0,
             startup_timeout: float = 180.0,
             max_launch_attempts: int = 3,
+            spelunky_dir: Optional[str] = None,
+            playlunky_dir: Optional[str] = None,
             **kwargs
         ) -> None:
+        """
+        Args:
+            game_dir: Spelunky 2 folder (with Spel2.exe). Defaults to $SPELUNKY2RL_GAME_DIR.
+                `spelunky_dir` is the old name and still works.
+            launcher: "auto" (Docker on Linux, native on Windows), "docker", "wine", "windows",
+                or a Launcher instance. Defaults can be changed with $SPELUNKY2RL_LAUNCHER.
+            renderer: "auto" (GPU if Docker can use one, else CPU), "gpu" or "cpu". Linux only.
+            launcher_options: extra keyword arguments for the launcher, e.g. {"image": ...}.
+            playlunky_dir: Windows only, folder with playlunky_launcher.exe.
+            **kwargs: default reset options (see _game_reset).
+        """
 
         super().__init__()
 
-        self.spelunky_dir = spelunky_dir
-        self.playlunky_dir = playlunky_dir
+        self.game_dir = game_dir or spelunky_dir
         self.frames_per_step = frames_per_step
         self.reset_options = getattr(self, "reset_options", {}) | kwargs
         self.render_enabled = render_enabled
         self.render_mode = 'rgb_array'
-        self.console = console
         self.log_file = log_file
         self.log_info = log_info if log_info is not None else ["all"]
         self.step_timeout = step_timeout
         self.startup_timeout = startup_timeout
         self.max_launch_attempts = max_launch_attempts
         self._closed = False
+        self.server = None
+        self.frame_source: Optional[FrameSource] = None
 
+        self.launcher = make_launcher(launcher, self.game_dir, renderer=renderer, console=console,
+                                      playlunky_dir=playlunky_dir, options=launcher_options)
         self._game_init()
 
 
@@ -123,99 +141,62 @@ class SpelunkyRLEngine(gym.Env):
         self._closed = True
         atexit.unregister(self.close)
 
-        server = getattr(self, "server", None)
-        if server is not None:
+        if self.server is not None:
             try:
                 self._send_dict({"command": "close"})
             except OSError:
                 pass
-            server.close()
+            self.server.close()
         if getattr(self, "server_socket", None) is not None:
             self.server_socket.close()
-        if getattr(self, "grabber", None) is not None:
-            self.grabber.stop()
-
-        for process in (getattr(self, "game_process", None), getattr(self, "launcher_process", None)):
-            if process is None:
-                continue
-            try:
-                process.terminate()
-                process.wait(timeout=5)
-            except Exception:
-                try:
-                    process.kill()
-                except Exception:
-                    pass
+        if self.frame_source is not None:
+            self.frame_source.close()
+        if getattr(self, "launcher", None) is not None:
+            self.launcher.stop()
 
     def _game_init(self):
-
-        executable_path = os.path.join(self.playlunky_dir, "playlunky_launcher.exe")
-        args = [
-            f'-exe_dir={self.spelunky_dir}',
-            *(['-console'] if self.console else [])
-        ]
-
-        load_order_path = os.path.join(self.spelunky_dir, "Mods", "Packs", "load_order.txt")
-        with open(load_order_path, "w") as f:
-            f.write("spelunky2rl\n")
-
-
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('127.0.0.1', 0))
         self.server_socket.listen(1)
-        port = self.server_socket.getsockname()[1]
-        os.environ["Spelunky_RL_Port"] = str(port)
-
-        def launch():
-            return subprocess.Popen([executable_path] + args, cwd=self.playlunky_dir)
-
-        self.launcher_process = launch()
-        launch_attempts = 1
-        self.game_process = None
         self.server_socket.settimeout(0.05)
+        port = self.server_socket.getsockname()[1]
         atexit.register(self.close)
-        deadline = time.monotonic() + self.startup_timeout
 
-        while True:
-            try:
-                self.server, addr = self.server_socket.accept()
-                break
-            except socket.timeout:
-                pass
+        try:
+            with self.launcher.starting(self.startup_timeout):
+                connection = self._launch_and_accept(port)
+                hello = check_hello(connection.receive(timeout=HELLO_TIMEOUT))
+        except BaseException:
+            self.close()
+            raise
+        self.server = connection
+        self.mod_version = hello.get("mod")
 
-            if time.monotonic() > deadline:
-                self.close()
-                raise TimeoutError(f"Spelunky 2 did not connect within {self.startup_timeout} s")
-
-            if self.game_process is not None and self.game_process.is_running():
-                pass
-            else:
-                if self.launcher_process.poll() is None:
-                    parent = psutil.Process(self.launcher_process.pid)
-                    children = parent.children(recursive=True)
-                    for child in children:
-                        if child.name().startswith("Spel2"):
-                            self.game_process = child
-
-                elif launch_attempts < self.max_launch_attempts:
-                    self.launcher_process = launch()
-                    launch_attempts += 1
-                else:
-                    self.close()
-                    raise RuntimeError(f"Playlunky exited {launch_attempts} times before the game connected")
-
-        self.server.settimeout(self.step_timeout)
         if self.render_enabled:
-            # Windows-only modules, imported here so the package imports on any platform
-            import win32gui
-            from .utils.frame_grabber import FrameGrabber
-            from .utils.window_management import get_hwnd_for_pid
+            self.frame_source = self.launcher.frame_source()
 
-            self.hwnd = get_hwnd_for_pid(self.game_process.pid)
-            self.grabber = FrameGrabber(self.hwnd)
-            current_title = win32gui.GetWindowText(self.hwnd)
-            new_title = f"R_{current_title}"
-            win32gui.SetWindowText(self.hwnd, new_title)
+    def _launch_and_accept(self, port: int) -> Connection:
+        deadline = time.monotonic() + self.startup_timeout
+        for _ in range(self.max_launch_attempts):
+            self.launcher.start(port)
+            while True:
+                try:
+                    sock, _ = self.server_socket.accept()
+                    return Connection(sock, self.step_timeout)
+                except socket.timeout:
+                    pass
+                if time.monotonic() > deadline:
+                    raise TimeoutError(f"Spelunky 2 did not connect within {self.startup_timeout} s"
+                                       + self._diagnostics())
+                if not self.launcher.is_running():
+                    break
+            self.launcher.stop()
+        raise RuntimeError(f"The game exited {self.max_launch_attempts} times before the mod connected"
+                           + self._diagnostics())
+
+    def _diagnostics(self) -> str:
+        output = self.launcher.diagnostics()
+        return f"\nLauncher output:\n{output}" if output else ""
 
     def _game_reset(
             self,
@@ -260,25 +241,10 @@ class SpelunkyRLEngine(gym.Env):
         self._send_dict(message)
 
     def _send_dict(self, payload: Dict[str, Any]) -> None:
-        json_str = json.dumps(payload) + "\n"
-        self.server.sendall(json_str.encode("utf-8"))
+        self.server.send(payload)
 
     def _receive_dict(self) -> Dict[str, Any]:
-        buffer = b""
-        while not buffer.endswith(b"\n"):
-            try:
-                data = self.server.recv(1024)
-            except socket.timeout:
-                raise TimeoutError(f"No response from the Spelunky Lua script in {self.step_timeout} s") from None
-            if not data:
-                raise ConnectionError("Disconnected from Spelunky Lua script")
-            buffer += data
-        json_str = buffer.decode("utf-8").strip()
-        dict = json.loads(json_str)
-        if "error" in dict:
-            raise RuntimeError(dict["error"])
-
-        return dict
+        return self.server.receive()
 
 
     ############ Render ############
@@ -288,10 +254,10 @@ class SpelunkyRLEngine(gym.Env):
     def render(self, mode="rgb_array"):
         if mode != "rgb_array":
             raise NotImplementedError
-        if self.render_enabled is False:
+        if self.frame_source is None:
             raise RuntimeError("Use render_enabled=True on init to be able to record replays")
 
-        return self.grabber.get_frame()
+        return self.frame_source.get_frame()
 
 
 

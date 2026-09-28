@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spelunky2rl"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Gymnasium environments for Spelunky 2 reinforcement learning"
 readme = "readme.md"
 requires-python = ">=3.9"
@@ -44,6 +44,9 @@ all = [
     "sb3-contrib",
     "opencv-python",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "spelunky2rl.version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

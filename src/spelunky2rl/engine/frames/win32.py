@@ -1,10 +1,36 @@
-import threading
-import win32gui
-import win32ui
-import numpy as np
+"""Windows-only: capture the game window with PrintWindow. Imported lazily by the Windows launcher."""
 
 import ctypes
-user=ctypes.windll.user32
+import threading
+
+import numpy as np
+import win32gui
+import win32process
+import win32ui
+
+from .base import FrameSource
+
+
+def get_hwnd_for_pid(pid: int) -> int:
+        """
+        Return the HWND of the first visible, enabled, top‑level window
+        that belongs to the given PID. Raises RuntimeError if none found.
+        """
+        candidates: list[int] = []
+
+        def _enum(hwnd, _):
+            if win32gui.IsWindowVisible(hwnd) and win32gui.IsWindowEnabled(hwnd):
+                _, win_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if win_pid == pid:
+                    candidates.append(hwnd)
+            return True
+
+        win32gui.EnumWindows(_enum, None)
+
+        if not candidates:
+            raise RuntimeError(f"No window found for PID {pid}")
+        return candidates[0]
+
 
 class FrameGrabber(threading.Thread):
     def __init__(self, hwnd):
@@ -44,3 +70,16 @@ class FrameGrabber(threading.Thread):
 
     def get_frame(self):
         return self.frame.copy()
+
+
+class Win32FrameSource(FrameSource):
+    def __init__(self, pid: int):
+        self.hwnd = get_hwnd_for_pid(pid)
+        self.grabber = FrameGrabber(self.hwnd)
+        win32gui.SetWindowText(self.hwnd, f"R_{win32gui.GetWindowText(self.hwnd)}")
+
+    def get_frame(self) -> np.ndarray:
+        return self.grabber.get_frame()
+
+    def close(self) -> None:
+        self.grabber.stop()

@@ -1,6 +1,10 @@
 meta.unsafe = true
 require("os")
 
+-- Keep in sync with PROTOCOL_VERSION in engine/protocol.py and __version__ in version.py
+local PROTOCOL_VERSION = 1
+local MOD_VERSION = "0.1.0"
+
 ------------- COMUNICATION ----------------
 package.path = "lua/?.lua;" .. package.path
 local socket = require("luasocket.socket")
@@ -11,6 +15,7 @@ local success, err = client:connect("127.0.0.1", port)
 if not success then
     error("Failed to connect: " .. tostring(err))
 end
+client:send(json.encode({hello = {protocol = PROTOCOL_VERSION, mod = MOD_VERSION}}) .. "\n")
 
 
 --------------- GLOBAL VARIABLES ----------------

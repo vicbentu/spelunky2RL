@@ -27,7 +27,7 @@ def make_gamestate(rng, time=60, health=4, dist_to_goal=50, dead_enemies=0, mone
         gamestate["dist_to_goal"] = dist_to_goal
     if "entity_info" in data_to_send:
         gamestate["entity_info"] = [
-            [float(rng.uniform(-10, 10)), float(rng.uniform(-5, 5)), 0.0, 0.0,
+            [float(rng.uniform(-10.5, 10.5)), float(rng.uniform(-5.5, 5.5)), 0.0, 0.0,
              int(entity_type), int(rng.integers(2)), 0]
             for entity_type in (220, 495, 600)
         ]
@@ -38,9 +38,10 @@ class FakeLua(threading.Thread):
     """Client end of the engine socket. `respond(message, step_index)` returns the state to send,
     or None to stay silent. Every received message is kept in `messages`."""
 
-    def __init__(self, sock: socket.socket, respond=None, seed=0):
+    def __init__(self, sock: socket.socket, respond=None, seed=0, hello=None):
         super().__init__(daemon=True)
         self.sock = sock
+        self.hello = hello
         self.rng = np.random.default_rng(seed)
         self.respond = respond or self.default_respond
         self.messages = []
@@ -51,6 +52,8 @@ class FakeLua(threading.Thread):
         return make_gamestate(self.rng, time=60 + 6 * steps, data_to_send=message.get("data_to_send", []))
 
     def run(self):
+        if self.hello is not None:
+            self.sock.sendall((json.dumps(self.hello) + "\n").encode())
         reader = self.sock.makefile("rb")
         try:
             for line in reader:

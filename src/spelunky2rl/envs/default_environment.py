@@ -203,8 +203,9 @@ class SpelunkyEnv(SpelunkyRLEngine):
         # Gymnasium's Sequence space only contains tuples
         observation["entities"] = tuple(
             (
-                np.array([ent[0]], dtype=np.float32),  # dx
-                np.array([ent[1]], dtype=np.float32),  # dy
+                # entities whose hitbox overlaps the view can have their centre slightly outside it
+                np.array([np.clip(ent[0], -10, 10)], dtype=np.float32),  # dx
+                np.array([np.clip(ent[1], -5, 5)], dtype=np.float32),    # dy
                 np.array([ent[2]], dtype=np.float32),  # vx
                 np.array([ent[3]], dtype=np.float32),  # vy
                 np.array([ent[4]], dtype=np.int32),    # entity_type
