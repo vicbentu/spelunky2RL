@@ -95,7 +95,7 @@ class WineLauncher(Launcher):
         game = assemble_instance(self.game_dir, self._instance_dir / "game", self.home / "steam_api64.dll",
                                  self.home / "Overlunky", mod=mod, cache=self.cache.path)
 
-        self._xvfb = subprocess.Popen(["Xvfb", self.display, "-screen", "0", "640x480x24", "-nolisten", "tcp"],
+        self._xvfb = subprocess.Popen(["Xvfb", self.display, "-screen", "0", "640x360x24", "-nolisten", "tcp"],
                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         socket_path = Path(f"/tmp/.X11-unix/X{port}")
         deadline = time.monotonic() + 10
@@ -105,7 +105,10 @@ class WineLauncher(Launcher):
         env = dict(os.environ, WINEPREFIX=str(prefix), WINEDEBUG="-all", DISPLAY=self.display,
                    **{PORT_ENV: str(port)})
         if self.renderer == "cpu":
-            env["VK_ICD_FILENAMES"] = "/usr/share/vulkan/icd.d/lvp_icd.x86_64.json"
+            lavapipe = sorted(Path("/usr/share/vulkan/icd.d").glob("lvp_icd*.json"))
+            if not lavapipe:
+                raise FileNotFoundError("renderer='cpu' needs Mesa's lavapipe (Ubuntu: apt install mesa-vulkan-drivers)")
+            env["VK_DRIVER_FILES"] = env["VK_ICD_FILENAMES"] = str(lavapipe[0])
         exe_dir = "Z:" + str(game).replace("/", "\\")
         playlunky = self.home / "playlunky"
         self._launcher = subprocess.Popen([self.wine, str(playlunky / "playlunky_launcher.exe"),

@@ -12,11 +12,11 @@ from typing import Optional
 
 # What we provide ourselves instead of taking it from the user's folder
 PROVIDED = {"steam_api64.dll", "steam_appid.txt", "steam_settings", "Overlunky", "overlunky.ini",
-            "playlunky.ini", "Mods"}
+            "playlunky.ini", "local.cfg", "Mods"}
 # Logs we do not want to carry over (spelunky.log can be huge)
 SKIPPED = {"spelunky.log", "full_output.log"}
 # Small files the game rewrites: real copies, never links into the user's folder
-COPIED = {"settings.cfg", "savegame.sav", "local.cfg", "input.cfg"}
+COPIED = {"settings.cfg", "savegame.sav", "input.cfg"}
 
 STEAM_APP_ID = "418530"
 
@@ -49,8 +49,9 @@ def assemble_instance(game_dir: Path, out_dir: Path, steam_api: Path, overlunky_
     (out_dir / "steam_settings").mkdir()
     (out_dir / "steam_settings" / "steam_appid.txt").write_text(STEAM_APP_ID + "\n")
     os.symlink(overlunky_dir, out_dir / "Overlunky")
-    for ini in ("overlunky.ini", "playlunky.ini"):
-        shutil.copy(config_dir() / ini, out_dir / ini)
+    # local.cfg: windowed and sized to the Xvfb screen, see docker/entrypoint.sh
+    for name in ("overlunky.ini", "playlunky.ini", "local.cfg"):
+        shutil.copy(config_dir() / name, out_dir / name)
 
     packs = out_dir / "Mods" / "Packs"
     packs.mkdir(parents=True)

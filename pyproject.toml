@@ -61,7 +61,7 @@ version = {attr = "spelunky2rl.version.__version__"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-spelunky2rl = ["mod/**/*", "tools/*.md", "engine/launchers/config/*.ini"]
+spelunky2rl = ["mod/**/*", "tools/*.md", "engine/launchers/config/*.ini", "engine/launchers/config/*.cfg"]
 [tool.ruff]
 target-version = "py39"
 line-length = 120

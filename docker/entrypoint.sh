@@ -17,9 +17,9 @@ I=/run/inst
 mkdir -p "$I/Mods/Packs"
 for f in /game/*; do
     case "$(basename "$f")" in
-        steam_api64.dll|steam_appid.txt|steam_settings|Overlunky|overlunky.ini|playlunky.ini|Mods) ;;
+        steam_api64.dll|steam_appid.txt|steam_settings|Overlunky|overlunky.ini|playlunky.ini|local.cfg|Mods) ;;
         spelunky.log|full_output.log) ;;
-        settings.cfg|savegame.sav|local.cfg|input.cfg) cp "$f" "$I/" ;;
+        settings.cfg|savegame.sav|input.cfg) cp "$f" "$I/" ;;
         *) ln -s "$f" "$I/" ;;
     esac
 done
@@ -28,16 +28,20 @@ ln -s "$A/steam_api64.dll" "$I/steam_api64.dll"
 echo 418530 > "$I/steam_appid.txt"
 mkdir -p "$I/steam_settings" && echo 418530 > "$I/steam_settings/steam_appid.txt"
 ln -s "$A/Overlunky" "$I/Overlunky"
-cp "$A/config/overlunky.ini" "$A/config/playlunky.ini" "$I/"
+# local.cfg holds the video settings: a window filling the Xvfb screen (fullscreen under Wine+Xvfb
+# leaves the Vulkan surface at 1x1 and every frame black), no vsync, no audio
+cp "$A/config/overlunky.ini" "$A/config/playlunky.ini" "$A/config/local.cfg" "$I/"
 # Playlunky writes inside mod folders; the pack only holds lua/ so there is nothing for it to convert
 ln -s /opt/mod "$I/Mods/Packs/spelunky2rl"
 echo spelunky2rl > "$I/Mods/Packs/load_order.txt"
 [ -d /cache ] && ln -s /cache "$I/Mods/Packs/.db"
 
 if [ "${RENDERER:-auto}" = cpu ]; then
-    export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+    # lavapipe; the manifest name varies between distributions (lvp_icd.json, lvp_icd.x86_64.json)
+    LVP="$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n1)"
+    export VK_DRIVER_FILES="$LVP" VK_ICD_FILENAMES="$LVP"
 fi
-Xvfb ":$DISPLAYNUM" -screen 0 640x480x24 -nolisten tcp >/dev/null 2>&1 &
+Xvfb ":$DISPLAYNUM" -screen 0 640x360x24 -nolisten tcp >/dev/null 2>&1 &
 export DISPLAY=":$DISPLAYNUM" Spelunky_RL_Port="$PORT"
 echo "spelunky2rl: port=$PORT display=:$DISPLAYNUM vulkan=$(vulkaninfo --summary 2>/dev/null | grep -m1 deviceName | cut -d= -f2 | xargs)"
 

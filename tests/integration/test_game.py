@@ -64,3 +64,18 @@ def test_parallel_envs(n):
         envs.close()
     time.sleep(1)
     assert not running_containers()
+
+
+def test_render_returns_game_frames():
+    pytest.importorskip("mss")
+    env = GetToExit(render_enabled=True, god_mode=True)
+    try:
+        env.reset(seed=3)
+        for _ in range(10):
+            env.step([2, 1, 0])
+        frame = env.render()
+        assert frame.dtype.name == "uint8" and frame.shape == (360, 640, 3)
+        # a black frame means the game is not presenting (e.g. fullscreen under Xvfb)
+        assert frame.mean() > 20
+    finally:
+        env.close()

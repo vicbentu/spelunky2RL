@@ -16,7 +16,7 @@ def game_dir(tmp_path):
     game = tmp_path / "Spelunky 2"
     game.mkdir()
     for name in ("Spel2.exe", "fmod.dll", "settings.cfg", "savegame.sav", "spelunky.log", "overlunky.ini",
-                 "steam_api64.dll"):
+                 "steam_api64.dll", "local.cfg"):
         (game / name).write_text(name)
     (game / "Data").mkdir()
     (game / "Mods" / "Packs" / "SomeOtherMod").mkdir(parents=True)
@@ -39,6 +39,8 @@ def test_symlink_farm(game_dir, tmp_path):
     assert (out / "steam_api64.dll").read_text() == "goldberg"
     assert (out / "steam_appid.txt").read_text().strip() == "418530"
     assert "Mods/Packs/spelunky2rl/lua" in (out / "overlunky.ini").read_text()
+    # our windowed video settings, not the user's (fullscreen leaves every frame black)
+    assert "<window_mode>2</window_mode>" in (out / "local.cfg").read_text()
     packs = out / "Mods" / "Packs"
     assert sorted(p.name for p in packs.iterdir()) == [".db", "load_order.txt", "spelunky2rl"]
     assert (packs / "spelunky2rl" / "lua" / "main.lua").is_file()
