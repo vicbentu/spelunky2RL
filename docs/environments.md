@@ -13,7 +13,7 @@ SpelunkyRL provides a flexible environment system built on [Gymnasium](https://g
 
 ## Pre-built Environments
 
-SpelunkyRL includes several ready-to-use environments in `spelunkyRL/environments/`:
+SpelunkyRL includes several ready-to-use environments in `src/spelunky2rl/envs/`:
 
 ### Dummy Environment
 
@@ -22,7 +22,7 @@ SpelunkyRL includes several ready-to-use environments in `spelunkyRL/environment
 The simplest environment - useful for testing and as a minimal starting point.
 
 ```python
-from spelunkyRL.environments.dummy_environment import SpelunkyEnv
+from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
 env = SpelunkyEnv(
     spelunky_dir=r"C:\Path\To\Spelunky 2",
@@ -60,7 +60,7 @@ Goal-reaching task where the agent navigates to the level exit as quickly as pos
 - Success/failure tracking in info dict
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 env = SpelunkyEnv(
     spelunky_dir=r"C:\Path\To\Spelunky 2",
@@ -95,7 +95,7 @@ Resource collection task where the agent collects as much gold as possible.
 - Provides gold delta and cumulative tracking
 
 ```python
-from spelunkyRL.environments.gold_grabber import SpelunkyEnv
+from spelunky2rl.envs.gold_grabber import SpelunkyEnv
 
 env = SpelunkyEnv(
     spelunky_dir=r"C:\Path\To\Spelunky 2",
@@ -132,7 +132,7 @@ Combat-focused task where the agent must kill as many enemies as possible.
 - Filters entity info to only include enemy types (219-342)
 
 ```python
-from spelunkyRL.environments.enemy_killer import SpelunkyEnv
+from spelunky2rl.envs.enemy_killer import SpelunkyEnv
 
 env = SpelunkyEnv(
     spelunky_dir=r"C:\Path\To\Spelunky 2",
@@ -152,7 +152,7 @@ All custom environments inherit from `SpelunkyRLEngine`. You can either:
 If you want to modify just the reward function or observation space:
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 class CustomEnv(SpelunkyEnv):
     def reward_function(self, gamestate, last_gamestate, action, info):
@@ -178,7 +178,7 @@ env = CustomEnv(
 
 ### Method 2: Create from Scratch
 
-See `spelunkyRL/environments/template_environment.py` for a fully commented template.
+See `src/spelunky2rl/envs/template_environment.py` for a fully commented template.
 
 ## Required Components
 
@@ -367,7 +367,7 @@ Here's a complete custom environment that rewards gold collection and goal-reach
 import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Dict, Box, Discrete
-from spelunkyRL import SpelunkyRLEngine
+from spelunky2rl import SpelunkyRLEngine
 
 class GoldRushEnv(SpelunkyRLEngine):
     """Collect gold and reach the exit"""
@@ -568,5 +568,5 @@ Common entity ranges (see [overlunky docs](https://spelunky-fyi.github.io/overlu
 ## Next Steps
 
 - **[Architecture Guide](architecture.md)** - Learn how the engine works internally
-- **Example Environments** - Study `spelunkyRL/environments/` for more examples
-- **Training Examples** - Check `spelunkyRL/examples/train_get_to_exit.py` for RL training
+- **Example Environments** - Study `src/spelunky2rl/envs/` for more examples
+- **Training Examples** - Check `examples/train_get_to_exit.py` for RL training

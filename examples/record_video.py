@@ -29,7 +29,7 @@ import os
 from sb3_contrib import RecurrentPPO
 from stable_baselines3 import PPO
 
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 
 ##################### CONFIGURATION #####################

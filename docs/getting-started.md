@@ -38,11 +38,12 @@ You'll need two important paths. To find them:
 
 ### Step 2: Clone the Repository
 
-Clone SpelunkyRL into your Spelunky 2 Mods folder:
+Clone SpelunkyRL anywhere and link its mod pack into your Spelunky 2 Mods folder
+(the pack lives in `src/spelunky2rl/mod` and must be named `spelunky2rl`):
 
 ```bash
-cd "C:\Path\To\Your\Spelunky 2\Mods\Packs"
-git clone https://github.com/your-repo/spelunkyRL.git
+git clone https://github.com/vicbentu/spelunky2RL.git
+mklink /J "C:\Path\To\Your\Spelunky 2\Mods\Packs\spelunky2rl" "C:\Path\To\spelunky2RL\src\spelunky2rl\mod"
 ```
 
 ### Step 3: Create Virtual Environment
@@ -60,11 +61,8 @@ spelunky_env\Scripts\activate
 ### Step 4: Install SpelunkyRL
 
 ```bash
-# If working in the cloned repo directory
+# From the cloned repo directory
 pip install .
-
-# If working from a different location
-pip install "C:\Path\To\Your\Spelunky 2\Mods\Packs\spelunkyRL"
 ```
 
 ## Your First Environment
@@ -72,7 +70,7 @@ pip install "C:\Path\To\Your\Spelunky 2\Mods\Packs\spelunkyRL"
 Here's a minimal example to verify everything is working:
 
 ```python
-from spelunkyRL.environments.dummy_environment import SpelunkyEnv
+from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
 # Create the environment
 env = SpelunkyEnv(
@@ -204,11 +202,11 @@ Controls:
 - Shift: Run
 - Up Arrow (at door): Enter door
 
-See `spelunkyRL/examples/manual_control.py` for a complete example.
+See `examples/manual_control.py` for a complete example.
 
 ## Example Scripts
 
-SpelunkyRL includes several example scripts in `spelunkyRL/examples/`:
+SpelunkyRL includes several example scripts in `examples/`:
 
 - **`manual_control.py`** - Test environment with keyboard controls
 - **`train_get_to_exit.py`** - Complete training example with RecurrentPPO
@@ -237,7 +235,7 @@ Available log options:
 
 - **[Environments Guide](environments.md)** - Learn about available environments and create your own
 - **[Architecture Guide](architecture.md)** - Understand how SpelunkyRL works internally
-- **Example Scripts** - Check `spelunkyRL/examples/` for training and evaluation examples
+- **Example Scripts** - Check `examples/` for training and evaluation examples
 
 ## Troubleshooting
 

@@ -33,7 +33,7 @@ import gymnasium as gym
 from typing import Dict
 import numpy as np
 
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 
 ##################### CUSTOM CALLBACK #####################

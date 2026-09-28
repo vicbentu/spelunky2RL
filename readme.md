@@ -30,7 +30,7 @@ pip install .
 ### Basic Usage
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 env = SpelunkyEnv(
     spelunky_dir=r"C:\Path\To\Spelunky 2",
@@ -62,7 +62,7 @@ env.close()
 
 ## Examples
 
-Check `spelunkyRL/examples/` for complete examples:
+Check `examples/` for complete examples:
 
 - **`manual_control.py`** - Test environment with keyboard controls
 - **`train_get_to_exit.py`** - Train an agent with RecurrentPPO

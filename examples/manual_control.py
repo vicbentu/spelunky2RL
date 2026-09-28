@@ -20,7 +20,7 @@ Controls:
 Press Ctrl+C to exit.
 """
 
-from spelunkyRL.environments.dummy_environment import SpelunkyEnv
+from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
 if __name__ == "__main__":
     print("=" * 60)

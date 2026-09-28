@@ -38,10 +38,10 @@ from stable_baselines3.common.monitor import Monitor
 
 # Environment imports - add new environments here
 ENV_CLASSES = {
-    'dummy': 'spelunkyRL.environments.dummy_environment',
-    'get_to_exit': 'spelunkyRL.environments.get_to_exit',
-    'gold_grabber': 'spelunkyRL.environments.gold_grabber',
-    'enemy_killer': 'spelunkyRL.environments.enemy_killer',
+    'dummy': 'spelunky2rl.envs.dummy_environment',
+    'get_to_exit': 'spelunky2rl.envs.get_to_exit',
+    'gold_grabber': 'spelunky2rl.envs.gold_grabber',
+    'enemy_killer': 'spelunky2rl.envs.enemy_killer',
 }
 
 

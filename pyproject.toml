@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "spelunkyRL"
+name = "spelunky2rl"
 version = "0.1.0"
 
 # Core dependencies - required for basic SpelunkyRL functionality
@@ -37,4 +37,7 @@ all = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["spelunkyRL"]
+where = ["src"]
+
+[tool.setuptools.package-data]
+spelunky2rl = ["mod/**/*", "tools/*.md"]

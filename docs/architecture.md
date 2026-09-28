@@ -64,7 +64,7 @@ SpelunkyRL bridges Python-based RL frameworks with Spelunky 2 through a multi-la
 
 ### SpelunkyRLEngine (core.py)
 
-The base class that all environments inherit from. Located in `spelunkyRL/engine/core.py`.
+The base class that all environments inherit from. Located in `src/spelunky2rl/engine/core.py`.
 
 #### Key Responsibilities
 
@@ -104,7 +104,7 @@ The `_game_init()` method:
 
 ```python
 def _game_init(self):
-    # 1. Create load_order.txt (tells Playlunky to load spelunkyRL)
+    # 1. Create load_order.txt (tells Playlunky to load the spelunky2rl pack)
     # 2. Create server socket on random port
     # 3. Set environment variable with port number
     # 4. Launch playlunky_launcher.exe
@@ -338,7 +338,7 @@ Signals the Lua script to clean up (though process is also terminated).
 2. **Python sets environment variable** `Spelunky_RL_Port` with port number
 3. **Python launches Playlunky**
 4. **Playlunky launches Spelunky 2** with mods
-5. **Spelunky 2 loads spelunkyRL mod** (via `load_order.txt`)
+5. **Spelunky 2 loads the spelunky2rl mod pack** (via `load_order.txt`)
 6. **Lua script reads port** from environment variable
 7. **Lua script connects** to Python socket
 8. **Python accepts connection** and proceeds
@@ -539,7 +539,7 @@ return self.grabber.get_frame()  # Screenshot via BitBlt
 
 ## Frame Grabber Implementation
 
-Located in `spelunkyRL/engine/utils/frame_grabber.py`.
+Located in `src/spelunky2rl/engine/utils/frame_grabber.py`.
 
 Uses Windows APIs to capture the game window:
 
@@ -557,7 +557,7 @@ class FrameGrabber:
 
 ## Window Management
 
-Located in `spelunkyRL/engine/utils/window_management.py`.
+Located in `src/spelunky2rl/engine/utils/window_management.py`.
 
 **Key functions**:
 
@@ -651,4 +651,4 @@ From `pyproject.toml`:
 
 - **[Getting Started](getting-started.md)** - Installation and basic usage
 - **[Environments Guide](environments.md)** - Create custom environments
-- **Lua Scripts** - Located in `lua/` folder (for advanced customization)
+- **Lua Scripts** - Located in `src/spelunky2rl/mod/lua/` (for advanced customization)

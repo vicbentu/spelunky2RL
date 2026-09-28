@@ -126,7 +126,7 @@ class SpelunkyRLEngine(gym.Env):
 
         load_order_path = os.path.join(self.spelunky_dir, "Mods", "Packs", "load_order.txt")
         with open(load_order_path, "w") as f:
-            f.write("spelunkyRL\n")
+            f.write("spelunky2rl\n")
 
         
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

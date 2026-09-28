@@ -26,7 +26,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Dict, Box, Discrete
 
-from spelunkyRL import SpelunkyRLEngine
+from spelunky2rl import SpelunkyRLEngine
 
 # Map entity type IDs to their gold value
 GOLD_VALUE_MAP = {

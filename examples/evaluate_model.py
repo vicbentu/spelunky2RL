@@ -28,7 +28,7 @@ from stable_baselines3.common.monitor import Monitor
 import numpy as np
 from datetime import datetime
 
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 
 ##################### CONFIGURATION #####################

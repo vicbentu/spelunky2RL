@@ -130,14 +130,14 @@ Common locations:
 
 For just using the environments (no training):
 ```bash
-pip install spelunkyRL
+pip install spelunky2rl
 ```
 
 ### For Training (recommended)
 
 To run the training examples:
 ```bash
-pip install spelunkyRL[train]
+pip install spelunky2rl[train]
 ```
 
 This installs: `torch`, `stable-baselines3`, `sb3-contrib`
@@ -148,7 +148,7 @@ This installs: `torch`, `stable-baselines3`, `sb3-contrib`
 
 To record videos of trained agents:
 ```bash
-pip install spelunkyRL[video]
+pip install spelunky2rl[video]
 ```
 
 This installs: `opencv-python`
@@ -157,7 +157,7 @@ This installs: `opencv-python`
 
 To install all optional dependencies:
 ```bash
-pip install spelunkyRL[all]
+pip install spelunky2rl[all]
 ```
 
 ## Customization
@@ -167,9 +167,9 @@ pip install spelunkyRL[all]
 Replace `SpelunkyEnv` import to try different tasks:
 
 ```python
-# from spelunkyRL.environments.get_to_exit import SpelunkyEnv
-from spelunkyRL.environments.gold_grabber import SpelunkyEnv  # Collect gold
-from spelunkyRL.environments.enemy_killer import SpelunkyEnv   # Kill enemies
+# from spelunky2rl.envs.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.gold_grabber import SpelunkyEnv  # Collect gold
+from spelunky2rl.envs.enemy_killer import SpelunkyEnv   # Kill enemies
 ```
 
 ### Adjusting Hyperparameters
@@ -194,7 +194,7 @@ Modify `SpelunkyFeaturesExtractor` to experiment with:
 
 After running these examples:
 
-1. **Create custom environments:** See `spelunkyRL/environments/template_environment.py`
+1. **Create custom environments:** See `src/spelunky2rl/envs/template_environment.py`
 2. **Design custom reward functions:** Modify reward shaping for your task
 3. **Experiment with algorithms:** Try different RL algorithms from stable-baselines3
 4. **Multi-task learning:** Train agents on multiple objectives
