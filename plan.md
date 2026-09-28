@@ -456,8 +456,12 @@ Nota: las plantillas `overlunky.ini`/`playlunky.ini` viven en el paquete
 
 ### Fase 5. Retomar el entrenamiento — EN CURSO
 
-- [ ] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed reproducible):
-      en marcha en `~/spelunkyrl-test/train_2026-09-28/` (3,7 M pasos, 6 contenedores, RecurrentPPO en GPU).
+- [ ] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed reproducible).
+      Primer intento parado a 2,6 M pasos con 0 % de éxito (`~/spelunkyrl-test/train_2026-09-28/`,
+      333 pasos/s contando las actualizaciones de PPO). Causa encontrada: `steal_input` ignoraba la
+      entrada del agente en ~40 % de los episodios (también con el Lua original de `main`) y hacía
+      los episodios no reproducibles. Arreglado escribiendo `state.player_inputs` en `PRE_UPDATE`.
+      Reentrenar queda pendiente: ahora la prioridad es el entorno, no el entrenamiento.
       El ejemplo de entrenamiento no funcionaba con SB3 2.x (el extractor volvía a codificar en one-hot
       lo que SB3 ya codifica); arreglado.
 - [ ] Comparar con los modelos de mayo de 2025: **no están en esta máquina** (ni en el repo ni en `~`).
