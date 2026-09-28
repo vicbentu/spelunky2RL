@@ -5,6 +5,10 @@ solo en Windows, con ventana visible y una lista de bugs conocidos.
 
 Objetivos de esta retoma, por orden de prioridad:
 
+> **Decisión (2026-09-28):** Windows queda fuera por ahora ("to implement"). Se eliminaron
+> `WindowsLauncher`, `Win32FrameSource`, pywin32 y los parámetros `console`/`playlunky_dir`;
+> `launcher="windows"` y ejecutar en Windows lanzan `NotImplementedError`.
+
 > **Estado (2026-09-27):** la viabilidad de Linux, headless, sin Steam y Docker está **probada** en la
 > rama `test/ubuntu-and-headless-feasability` (ver `feasibility/RESULTS.md`). Las secciones 3 a 6
 > reflejan el diseño resultante de esas pruebas; las secciones 1 y 2 son el estudio previo.
@@ -393,7 +397,7 @@ Todo verificable en Windows con el setup actual, o con tests unitarios sin juego
 
 Verificado con el juego real: `DockerLauncher` y `WineLauncher` pasan `tests/integration`
 (episodio, semillas, 4 entornos en paralelo, arranque en paralelo con caché vacía, nada queda vivo).
-`WindowsLauncher` y `Win32FrameSource` están escritos pero **sin probar** (no hay Windows aquí).
+Windows: eliminado por ahora (ver la decisión del principio).
 `X11FrameSource` captura el Xvfb correcto pero da imagen negra: se resuelve en la Fase 4 (render).
 
 - [x] `engine/launchers/`: `Launcher` base, `DockerLauncher`, `WineLauncher`, `WindowsLauncher`.

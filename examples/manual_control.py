@@ -38,7 +38,6 @@ if __name__ == "__main__":
         manual_control=True,    # ENABLE MANUAL CONTROL
         god_mode=True,          # Invulnerability for testing
         render_enabled=False,   # Don't capture frames (saves performance)
-        console=True            # Show console for debugging
     )
 
     print("Environment initialized successfully!")

@@ -6,7 +6,6 @@ import pytest
 import spelunky2rl.engine.launchers.docker as docker_launcher
 from spelunky2rl.engine.assemble import assemble_instance
 from spelunky2rl.engine.launchers.docker import DockerLauncher
-from spelunky2rl.engine.launchers.windows import OVERLUNKY_SETTINGS, set_ini_values
 
 posix_only = pytest.mark.skipif(sys.platform == "win32", reason="symlink farm is for Linux")
 
@@ -93,13 +92,3 @@ def test_cache_is_per_game_build(game_dir, tmp_path, no_gpu, monkeypatch):
 def test_missing_game(tmp_path, no_gpu):
     with pytest.raises(FileNotFoundError, match="No Spel2.exe"):
         DockerLauncher(tmp_path)
-
-
-def test_overlunky_ini_edit_keeps_other_settings():
-    ini = 'menu_ui = 1\nautorun_scripts = [\n  "other.lua"\n]\nscript_dir = "Overlunky/Scripts"\nvsync = 1\n'
-    out = set_ini_values(ini, OVERLUNKY_SETTINGS)
-    assert 'autorun_scripts = ["main.lua"]' in out
-    assert 'script_dir = "Mods/Packs/spelunky2rl/lua"' in out
-    assert "enable_unsafe_scripts = 1" in out
-    assert "menu_ui = 1" in out and "vsync = 1" in out
-    assert "other.lua" not in out

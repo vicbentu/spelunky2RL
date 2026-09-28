@@ -114,9 +114,7 @@ python examples/record_video.py
 ## Configuration
 
 All scripts find the game through `SPELUNKY2RL_GAME_DIR` (a modding copy of the Spelunky 2 folder,
-not your Steam installation). On Windows they also need `SPELUNKY2RL_PLAYLUNKY_DIR`, usually
-`%LOCALAPPDATA%\spelunky.fyi\modlunky2\playlunky\nightly`. See
-[Getting Started](../docs/getting-started.md).
+not your Steam installation). See [Getting Started](../docs/getting-started.md).
 
 ## Requirements
 

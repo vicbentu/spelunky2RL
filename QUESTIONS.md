@@ -35,17 +35,6 @@ Formato: qué decidí, por qué, qué cuesta y el cambio que lo deshace.
   publicadas no se ven afectadas.
 - **Para cambiarlo**: alojar una copia del zip (release propia en este repo) y apuntar `OVERLUNKY_URL` ahí.
 
-## 4. `WindowsLauncher` trabaja sobre la carpeta del juego, sin granja de enlaces
-
-- **Decisión**: en Windows mantengo el comportamiento anterior (Playlunky sobre la carpeta del juego,
-  compartida por todas las instancias), más instalar el pack y fijar tres opciones de `overlunky.ini`.
-  El plan proponía ensamblar también ahí un directorio por instancia, pero no tengo Windows para
-  probarlo y en Windows los enlaces simbólicos piden permisos de administrador o modo desarrollador.
-- **Coste**: no he podido ejecutar nada de Windows (ni el lanzador ni `Win32FrameSource`). Si varias
-  instancias escriben a la vez `settings.cfg`/`savegame.sav` podría haber conflictos (antes ya pasaba igual).
-  Además `load_order.txt` deja solo nuestro mod y `overlunky.ini` se modifica en tres claves.
-- **Para cambiarlo**: usar `assemble_instance` con uniones de directorio (`mklink /J`) y hardlinks.
-
 ## 5. El modo `wine` copia el prefijo por instancia (~1,2 GB cada uno)
 
 - **Decisión**: `WineLauncher` reserva "slots" con un bloqueo y copia el prefijo base la primera vez

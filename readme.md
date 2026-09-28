@@ -19,7 +19,7 @@ SpelunkyRL is a Reinforcement Learning environment for Spelunky 2, providing a s
 
 ### Installation
 
-On Linux the game runs headless in Docker, one container per environment; on Windows it runs natively.
+The game runs headless in Docker on Linux, one container per environment (Windows: not implemented yet).
 Either way you need your own copy of Spelunky 2 (Steam is only needed to download it).
 
 ```bash
@@ -29,7 +29,7 @@ spelunky2rl pull      # Linux: the game runtime image (Wine, Playlunky, Overlunk
 spelunky2rl doctor    # checks Docker, GPU, the image and your game folder
 ```
 
-See [Getting Started](docs/getting-started.md) for the details and the Windows setup.
+See [Getting Started](docs/getting-started.md) for the details.
 
 ### Basic Usage
 

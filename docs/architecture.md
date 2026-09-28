@@ -93,7 +93,7 @@ The base class that all environments inherit from. Located in `src/spelunky2rl/e
 def __init__(self, game_dir=None, launcher="auto", renderer="auto", **kwargs):
     # 1. Store configuration; kwargs become default reset options
     self.reset_options = kwargs
-    # 2. Pick a launcher: Docker on Linux, native on Windows (or wine / a Launcher instance)
+    # 2. Pick a launcher: Docker by default (or wine / a Launcher instance)
     self.launcher = make_launcher(launcher, game_dir, renderer=renderer)
     # 3. Launch the game and wait for the mod to connect and say hello
     self._game_init()
@@ -119,7 +119,6 @@ variable, and it is also how a launcher finds *its* `Spel2.exe` among several in
 |---|---|---|
 | `DockerLauncher` | Linux (default) | `docker run --rm --network host` of the game image per env; game mounted at `/game:ro`; `--gpus all` when available |
 | `WineLauncher` | Linux, no Docker | host Wine, one Xvfb, instance dir and prefix copy per env (`scripts/setup_wine.sh`) |
-| `WindowsLauncher` | Windows (default) | `playlunky_launcher.exe --overlunky` on the game folder itself |
 
 Docker and Wine run each instance in a directory assembled over the read-only game folder
 (`engine/assemble.py`, `docker/entrypoint.sh`): symlinks to the game files, real copies of the few
@@ -479,7 +478,6 @@ frame = env.render()  # Returns numpy array
 
 - `X11FrameSource` (Docker, Wine): grabs the instance's Xvfb display with `mss`. With host networking
   the container's X server is reachable from the host as display `:<port>`.
-- `Win32FrameSource` (Windows): `PrintWindow` on the game window, found by the game's PID.
 
 ## Error Handling
 
@@ -541,7 +539,6 @@ def log_step(self, gamestate):
 From `pyproject.toml`:
 
 - **gymnasium**, **numpy**, **psutil**
-- **pywin32**: Windows only
 - **mss**: `render` extra, frame capture on Linux
 - **torch**, **stable-baselines3**, **sb3-contrib**: `train` extra, only for the examples
 
@@ -551,7 +548,7 @@ From `pyproject.toml`:
 - Linux: **Docker** (and the NVIDIA Container Toolkit for GPU rendering). The image
   (`docker/Dockerfile`) contains Wine, DXVK, Xvfb, Playlunky, Overlunky and the Goldberg emulator,
   pinned in `docker/versions.env`.
-- Windows: **modlunky2**, which installs **Playlunky** and **Overlunky**
+- Windows: not supported yet
 
 ## Next Steps
 

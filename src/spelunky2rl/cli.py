@@ -51,13 +51,6 @@ def _check_docker(image: str) -> bool:
     return ok
 
 
-def _check_windows(playlunky_dir) -> bool:
-    playlunky_dir = playlunky_dir or os.environ.get("SPELUNKY2RL_PLAYLUNKY_DIR")
-    if not playlunky_dir or not (Path(playlunky_dir) / "playlunky_launcher.exe").is_file():
-        return _report(FAIL, "playlunky: set SPELUNKY2RL_PLAYLUNKY_DIR to the folder with playlunky_launcher.exe")
-    return _report(OK, f"playlunky: {playlunky_dir}")
-
-
 def _check_wine() -> bool:
     from .engine.launchers.wine import default_wine_home
 
@@ -74,14 +67,12 @@ def doctor(args) -> int:
 
     print(f"spelunky2rl {__version__}, Python {sys.version.split()[0]} on {sys.platform}")
     ok = _check_game_dir(args.game_dir or os.environ.get("SPELUNKY2RL_GAME_DIR"))
-    launcher = os.environ.get("SPELUNKY2RL_LAUNCHER") or ("windows" if sys.platform == "win32" else "docker")
+    launcher = os.environ.get("SPELUNKY2RL_LAUNCHER") or "docker"
     _report(INFO, f"launcher: {launcher}")
     if launcher == "docker":
         ok &= _check_docker(args.image or os.environ.get("SPELUNKY2RL_IMAGE") or DEFAULT_IMAGE)
     elif launcher == "wine":
         ok &= _check_wine()
-    elif launcher == "windows":
-        ok &= _check_windows(None)
     print("Everything looks ready." if ok else "Some checks failed.")
     return 0 if ok else 1
 

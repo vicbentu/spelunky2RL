@@ -112,3 +112,8 @@ def test_failed_first_build_does_not_mark_the_cache_ready(tmp_path):
     with pytest.raises(RuntimeError), cache.building(timeout=5):
         raise RuntimeError("game crashed")
     assert not cache.ready
+
+
+def test_windows_is_not_implemented(tmp_path):
+    with pytest.raises(NotImplementedError, match="Windows"):
+        make_launcher("windows", str(tmp_path))

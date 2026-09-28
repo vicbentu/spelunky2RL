@@ -3,13 +3,9 @@
 This guide will walk you through installing and running your first SpelunkyRL environment.
 
 SpelunkyRL drives a real copy of Spelunky 2. Python runs where you train; each environment
-starts its own game instance and closes it on `env.close()`. There are two ways to run the game:
+starts its own game instance, headless in a Docker container, and closes it on `env.close()`.
 
-| | Linux (recommended) | Windows |
-|---|---|---|
-| How the game runs | one Docker container per environment, headless | natively, with a window per environment |
-| What you install | Docker (+ NVIDIA Container Toolkit for GPU) | modlunky2, Playlunky, Overlunky |
-| Steam at runtime | no | no (use a separate modding copy) |
+**Linux only for now.** Running natively on Windows is not implemented yet (to do).
 
 ## You need your own copy of the game
 
@@ -21,8 +17,7 @@ the image swaps in the [Goldberg emulator](https://github.com/Detanup01/gbe_fork
 Then tell SpelunkyRL where the copy is, once:
 
 ```bash
-export SPELUNKY2RL_GAME_DIR="/path/to/Spelunky 2"      # Linux
-setx SPELUNKY2RL_GAME_DIR "C:\Games\Spelunky 2"       # Windows (new terminals)
+export SPELUNKY2RL_GAME_DIR="/path/to/Spelunky 2"
 ```
 
 or pass `game_dir="..."` when creating an environment.
@@ -64,31 +59,6 @@ then use `launcher="wine"` or `SPELUNKY2RL_LAUNCHER=wine`.
 **Editing the Lua mod**: set `SPELUNKY2RL_DEV_MOD=/path/to/spelunky2RL/src/spelunky2rl/mod/lua` and new
 environments load it instead of the copy in the image; no rebuild needed.
 
-## Installation on Windows
-
-1. Install [modlunky2](https://github.com/spelunky-fyi/modlunky2) and point it at your modding copy.
-   In its Overlunky tab, install Overlunky. Playlunky is installed by modlunky2.
-2. Find the Playlunky folder: in modlunky2, Settings → User Directories → Data, then
-   `playlunky/<version>` (e.g. `playlunky/nightly`). Set it once:
-
-   ```bash
-   setx SPELUNKY2RL_PLAYLUNKY_DIR "C:\Users\You\AppData\Local\spelunky.fyi\modlunky2\playlunky\nightly"
-   ```
-
-   ![modlunky2 configuration](modlunky2config.png)
-
-3. Install the package:
-
-   ```bash
-   git clone https://github.com/vicbentu/spelunky2RL.git
-   cd spelunky2RL
-   pip install .
-   ```
-
-On start, SpelunkyRL copies its mod into `Mods/Packs/spelunky2rl`, makes it the only mod in
-`load_order.txt`, and sets `overlunky.ini` to autorun it (`autorun_scripts`, `script_dir`,
-`enable_unsafe_scripts`).
-
 ## Your First Environment
 
 Here's a minimal example to verify everything is working:
@@ -125,10 +95,9 @@ env = SpelunkyEnv(
     game_dir="/path/to/Spelunky 2",   # Optional: folder with Spel2.exe (default: $SPELUNKY2RL_GAME_DIR)
     frames_per_step=6,                # Optional: Game frames per RL step (default: 6)
     render_enabled=False,             # Optional: Enable render() method (default: False)
-    launcher="auto",                  # Optional: "docker" (Linux default), "wine", "windows" (Windows default)
-    renderer="auto",                  # Optional, Linux: "gpu", "cpu" or "auto" (GPU if Docker can use one)
+    launcher="auto",                  # Optional: "docker" (default) or "wine"
+    renderer="auto",                  # Optional: "gpu", "cpu" or "auto" (GPU if Docker can use one)
     launcher_options=None,            # Optional: e.g. {"image": "..."} for Docker
-    console=False,                    # Optional, Windows: Show Playlunky console (default: False)
     step_timeout=60.0,                # Optional: Max seconds to wait for the game each step
     startup_timeout=180.0,            # Optional: Max seconds for the game to start and connect
     max_launch_attempts=3,            # Optional: Relaunches if the game dies before connecting
@@ -222,7 +191,6 @@ To test your environment with keyboard controls:
 env = SpelunkyEnv(
     manual_control=True,    # Enable keyboard input
     god_mode=True,          # Useful for testing
-    console=True,           # Show console for debugging
 )
 
 obs, info = env.reset()
@@ -283,7 +251,6 @@ Available log options:
 **Environment won't start:**
 - Run `spelunky2rl doctor`
 - The error message ends with the launcher's recent output (the container's, on Linux)
-- Windows: check `SPELUNKY2RL_PLAYLUNKY_DIR` and that Overlunky is installed in the game folder
 
 **Game is too slow:**
 - Set `speedup=True`

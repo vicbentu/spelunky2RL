@@ -42,27 +42,24 @@ class SpelunkyRLEngine(gym.Env):
             launcher: Union[str, Launcher] = "auto",
             renderer: str = "auto",
             launcher_options: Optional[Dict[str, Any]] = None,
-            console: bool = False,
             log_file: str = None,
             log_info: Optional[List[str]] = None,
             step_timeout: float = 60.0,
             startup_timeout: float = 180.0,
             max_launch_attempts: int = 3,
             spelunky_dir: Optional[str] = None,
-            playlunky_dir: Optional[str] = None,
             **kwargs
         ) -> None:
         """
         Args:
             game_dir: Spelunky 2 folder (with Spel2.exe). Defaults to $SPELUNKY2RL_GAME_DIR.
                 `spelunky_dir` is the old name and still works.
-            launcher: "auto" (Docker on Linux, native on Windows), "docker", "wine", "windows",
-                or a Launcher instance. Defaults can be changed with $SPELUNKY2RL_LAUNCHER.
-            renderer: "auto" (GPU if Docker can use one, else CPU), "gpu" or "cpu". Linux only.
+            launcher: "auto" (Docker), "docker", "wine", or a Launcher instance. The default can be
+                changed with $SPELUNKY2RL_LAUNCHER. Windows is not supported yet.
+            renderer: "auto" (GPU if Docker can use one, else CPU), "gpu" or "cpu".
             render_enabled / render_mode: capture frames for render(); render_mode="rgb_array"
                 (as passed by gymnasium.make) is the same as render_enabled=True.
             launcher_options: extra keyword arguments for the launcher, e.g. {"image": ...}.
-            playlunky_dir: Windows only, folder with playlunky_launcher.exe.
             **kwargs: default reset options (see _game_reset).
         """
 
@@ -84,8 +81,7 @@ class SpelunkyRLEngine(gym.Env):
         self.server = None
         self.frame_source: Optional[FrameSource] = None
 
-        self.launcher = make_launcher(launcher, self.game_dir, renderer=renderer, console=console,
-                                      playlunky_dir=playlunky_dir, options=launcher_options)
+        self.launcher = make_launcher(launcher, self.game_dir, renderer=renderer, options=launcher_options)
         self._game_init()
 
 

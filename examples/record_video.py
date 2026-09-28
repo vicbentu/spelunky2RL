@@ -94,8 +94,7 @@ def record_agent_video(
             speedup=False,          # Don't speed up (real-time looks better)
             render_enabled=True,    # ENABLE FRAME GRABBING
             manual_control=False,
-            god_mode=False,
-            console=False
+            god_mode=False
         )
         print("✓ Environment initialized")
 
