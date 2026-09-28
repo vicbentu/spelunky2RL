@@ -13,9 +13,10 @@ Action Space:
 - 3-action simplified space: [Movement X, Movement Y, Jump]
 
 Reward Function:
-- Reward proportional to gold collected each step (delta_money / 1000.0)
+- Reward proportional to gold collected each step (delta_money / 500.0)
+- Distance shaping towards the nearest visible gold (only on steps without pickup)
 - Tracks total episode gold in info dict
-- Truncation after 30 seconds
+- Never terminates; truncation after 90 seconds
 
 Notes:
 - Destroys all enemies and traps at level start
@@ -47,9 +48,8 @@ GOLD_VALUE_MAP = {
 
 class SpelunkyEnv(SpelunkyRLEngine):
 
-    def __init__(self, target_gold=10000, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.target_gold = target_gold
 
     ################## ENV CHARACTERISTICS ##################
 
@@ -128,7 +128,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
         info["gold_delta"] = delta_money
         info["gold_collected"] = episode_gold
 
-        # Time limit: 30 seconds
+        # Time limit: 90 seconds
         if gamestate["basic_info"]["time"] >= 60 * 90:
             truncated = True
 
@@ -140,7 +140,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
                 info["success"] = False
             self.episode_gold = 0
 
-        return float(reward_val), done or truncated, truncated, info
+        return float(reward_val), done, truncated, info
 
     def gamestate_to_observation(self, gamestate):
         observation = {}

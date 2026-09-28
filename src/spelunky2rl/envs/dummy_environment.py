@@ -61,10 +61,10 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
     def reward_function(self, gamestate, last_gamestate, action, info):
         truncated = False
-        if gamestate["basic_info"]["time"] >= 60*90: # 900 steps
+        if gamestate["basic_info"]["time"] >= 60*90: # 90 seconds
             truncated = True
 
-        return float(0), truncated, truncated, info
+        return 0.0, False, truncated, info
 
     def gamestate_to_observation(self, gamestate):
         observation = {}

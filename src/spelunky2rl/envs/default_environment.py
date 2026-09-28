@@ -180,7 +180,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
             info["success"] = True
             info["time"] = gamestate["basic_info"]["time"]
 
-        return float(reward_val), done or truncated, truncated, info
+        return float(reward_val), done, truncated, info
 
 
     def gamestate_to_observation(self, gamestate):

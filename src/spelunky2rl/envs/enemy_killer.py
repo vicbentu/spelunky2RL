@@ -36,7 +36,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
     ################## ENV CHARACTERISTICS ##################
 
     observation_space = Dict({
-        'map_info': Box(low=0, high=116, shape=(1, 11, 21), dtype=np.int32),
+        'map_info': Box(low=0, high=916, shape=(1, 11, 21), dtype=np.int32),
         "char_state": Discrete(23),
         "can_jump"  : Discrete(2),
         "enemies": Sequence(
@@ -80,14 +80,14 @@ class SpelunkyEnv(SpelunkyRLEngine):
         if gamestate["basic_info"]["time"] >= 60*90: # 90 seconds
             truncated = True
 
-        reward_val = (last_gamestate["basic_info"]["dead_enemies"] - gamestate["basic_info"]["dead_enemies"])*0.5
-        return float(reward_val), done or truncated, truncated, info
+        reward_val = (gamestate["basic_info"]["dead_enemies"] - last_gamestate["basic_info"]["dead_enemies"])*0.5
+        return float(reward_val), done, truncated, info
 
     def gamestate_to_observation(self, gamestate):
         observation = {}
 
-        observation["map_info"] = np.array(gamestate["map_info"])
-        observation["char_state"] = np.int32(gamestate["basic_info"]["char_state"])
+        observation["map_info"] = np.array(gamestate["map_info"], dtype=np.int32)[np.newaxis]
+        observation["char_state"] = np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22))
         observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
         observation["enemies"] = [
             (

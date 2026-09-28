@@ -187,9 +187,6 @@ class SpelunkyEnv(SpelunkyRLEngine):
             truncated = True
             info["truncation_reason"] = "time_limit"
 
-        # Example: Track custom metrics
-        info["custom_metric"] = self.custom_param
-
         # The engine automatically checks for death (health <= 0) and win conditions
         # You don't need to handle those here unless you want custom behavior
 

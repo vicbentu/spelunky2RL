@@ -85,9 +85,10 @@ Resource collection task where the agent collects as much gold as possible.
 **Action Space**: `[Movement X, Movement Y, Jump]`
 
 **Reward Function**:
-- Reward proportional to gold collected (delta_money / 1000.0)
+- Reward proportional to gold collected (delta_money / 500.0)
+- Distance shaping towards the nearest visible gold
 - Tracks total episode gold
-- 30-second time limit
+- 90-second time limit (never terminates, only truncates)
 
 **Features**:
 - Removes all enemies and traps
@@ -247,6 +248,11 @@ def reward_function(self, gamestate, last_gamestate, action, info):
 
     return float(reward), done, truncated, info
 ```
+
+`done` is Gymnasium's `terminated`: the task really ended (goal reached, failure). Use `truncated`
+for time limits and other cut-offs, and do not return `done or truncated` as `done`: learners like
+Stable-Baselines3 bootstrap the value of truncated states and would treat time limits as real endings.
+The engine sets `done` itself when the player dies or the level is completed.
 
 **Gamestate structure**:
 ```python

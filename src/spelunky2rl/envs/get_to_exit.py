@@ -62,7 +62,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
         reward_val = -0.01  # small penalty for each step to encourage faster completion
 
         # Too much time
-        if gamestate["basic_info"]["time"] >= 60*90: # 900 steps
+        if gamestate["basic_info"]["time"] >= 60*90: # 90 seconds
             truncated = True
             # reward_val -= 5
 
@@ -85,15 +85,16 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         # Penalize for the rest of steps
         if truncated:
-            timesteps = gamestate["basic_info"]["time"] / 6
-            reward_val -= 0.01 * (900 - timesteps)
+            max_steps = (60*90) / self.frames_per_step
+            timesteps = gamestate["basic_info"]["time"] / self.frames_per_step
+            reward_val -= 0.01 * (max_steps - timesteps)
         if done or truncated:
             self.min_dist_to_goal = float("inf")
 
         # Reward getting close to the goal
         reward_val += (last_gamestate["dist_to_goal"] - gamestate["dist_to_goal"])*0.1
         
-        return float(reward_val), done or truncated, truncated, info
+        return float(reward_val), done, truncated, info
 
     def gamestate_to_observation(self, gamestate):
         observation = {}
@@ -108,7 +109,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         observation["map_info"] = multi_hot
 
-        observation["char_state"] = np.int32(gamestate["basic_info"]["char_state"])
+        observation["char_state"] = np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22))
         observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
 
         return observation
