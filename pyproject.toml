@@ -17,6 +17,9 @@ dependencies = [
     "psutil",
 ]
 
+[project.scripts]
+spelunky2rl = "spelunky2rl.cli:main"
+
 # Optional dependencies for specific use cases
 [project.optional-dependencies]
 # For training RL agents (examples/train_get_to_exit.py)
@@ -24,6 +27,11 @@ train = [
     "torch",
     "stable-baselines3",
     "sb3-contrib",
+]
+
+# render() on Linux (captures the instance's X display)
+render = [
+    "mss",
 ]
 
 # For recording videos (examples/record_video.py)
@@ -39,6 +47,7 @@ dev = [
 
 # Install everything
 all = [
+    "mss",
     "torch",
     "stable-baselines3",
     "sb3-contrib",
