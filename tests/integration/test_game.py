@@ -43,6 +43,28 @@ def test_episode_and_cleanup():
     assert not own_containers([env])
 
 
+def test_actions_move_the_player_and_are_deterministic():
+    """The agent's input used to be ignored in ~40% of episodes (steal_input), which also made
+    episodes non-reproducible."""
+    env = GetToExit(**FAST, god_mode=True)
+
+    def episode(seed):
+        env.reset(seed=seed)
+        xs = [env.last_gamestate["basic_info"]["x"]]
+        for i in range(60):
+            env.step([2 if (i // 30) % 2 == 0 else 0, 1, int(i % 8 == 0)])
+            xs.append(env.last_gamestate["basic_info"]["x"])
+        return xs
+
+    try:
+        for seed in range(8):
+            first, second = episode(seed), episode(seed)
+            assert max(first) - min(first) > 0.5, f"player did not move (seed {seed})"
+            assert first == second, f"seed {seed} not reproducible"
+    finally:
+        env.close()
+
+
 def test_same_seed_same_level():
     env = GetToExit(**FAST)
     try:

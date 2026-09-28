@@ -31,7 +31,7 @@ local data = {
     command = "pass"
 }
 local tiles = nil
-local stolen_input_uid = nil
+local agent_input = nil  -- INPUTS applied every frame until the next step; nil = leave input alone
 
 local x, y, vel_x, vel_y, health, money, bombs, ropes, layer, map_info, face_left_player, holding_type_player, back_item, dist_to_goal, pos_type_matrix, char_state, can_jump = 
       0, 0, 0,     0,     0,      0,     0,     0,     0,     0,        0,                 0,                  0,         0,            0,               0,          false
@@ -214,10 +214,7 @@ local function theme_for(world, level)
 end
 
 local function release_input()
-    if stolen_input_uid ~= nil then
-        return_input(stolen_input_uid)
-        stolen_input_uid = nil
-    end
+    agent_input = nil
 end
 
 local function reset(seed, world, level, theme)
@@ -493,11 +490,8 @@ set_callback(function()
             local buttons = booleans_to_button_mask(last6)
 
             if not manual_control then
-                stolen_input_uid = get_local_players()[1].uid
-                steal_input(stolen_input_uid)
                 -- x, y go from -1 to 1
-                local input = buttons_to_inputs(python_input[1]-1, python_input[2]-1, buttons) -- arrays in lua start at 1
-                send_input(players[1].uid, input)
+                agent_input = buttons_to_inputs(python_input[1]-1, python_input[2]-1, buttons) -- arrays in lua start at 1
             end
 
         elseif data["command"] == "close" then
@@ -531,3 +525,13 @@ end, ON.RENDER_PRE_GAME)
 set_callback(function()
     if not render_enabled then return true end
 end, ON.RENDER_PRE_HUD)
+
+-- The agent's input, written before every logic frame (also the ones run by update_state()).
+-- steal_input/send_input used to do this, but overlunky deprecates them as crash-prone, and the
+-- input was silently ignored in ~40% of episodes (the player never moved).
+set_callback(function()
+    if agent_input ~= nil and not manual_control then
+        state.player_inputs.player_slot_1.buttons_gameplay = agent_input
+        state.player_inputs.player_slot_1.buttons = agent_input
+    end
+end, ON.PRE_UPDATE)
