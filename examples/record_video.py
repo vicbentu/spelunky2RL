@@ -110,7 +110,7 @@ def record_agent_video(
         print("✓ Model loaded")
 
         # -------- Reset Environment ------------------------------------------
-        obs = env.reset()
+        obs, _ = env.reset()
         print("✓ Environment reset")
 
         # Initialize LSTM state if needed
@@ -173,7 +173,7 @@ def record_agent_video(
                 success = info.get("success", False)
                 print(f"  Episode {episode_count} ended - "
                       f"{'SUCCESS' if success else 'FAILED'}")
-                obs = env.reset()
+                obs, _ = env.reset()
                 episode_start = np.array([True])
                 lstm_state = None  # Reset LSTM state
 

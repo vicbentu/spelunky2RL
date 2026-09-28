@@ -1,13 +1,11 @@
-import os, socket, subprocess, json, atexit, psutil, random
+import os, socket, subprocess, json, atexit, psutil, time
 from datetime import datetime
 from typing import Any, Dict, Tuple, List, Optional
 from collections import Counter
 
 import gymnasium as gym
-import win32gui
+import numpy as np
 
-from .utils.frame_grabber import FrameGrabber
-from .utils.window_management import get_hwnd_for_pid, press_ctrlf4
 from ..tools.id2name import id2name
 
 
@@ -36,7 +34,10 @@ class SpelunkyRLEngine(gym.Env):
             render_enabled: bool = False,
             console: bool = False,
             log_file: str = None,
-            log_info: list[str] = ["all"],
+            log_info: Optional[List[str]] = None,
+            step_timeout: float = 60.0,
+            startup_timeout: float = 180.0,
+            max_launch_attempts: int = 3,
             **kwargs
         ) -> None:
 
@@ -50,7 +51,11 @@ class SpelunkyRLEngine(gym.Env):
         self.render_mode = 'rgb_array'
         self.console = console
         self.log_file = log_file
-        self.log_info = log_info
+        self.log_info = log_info if log_info is not None else ["all"]
+        self.step_timeout = step_timeout
+        self.startup_timeout = startup_timeout
+        self.max_launch_attempts = max_launch_attempts
+        self._closed = False
 
         self._game_init()
 
@@ -76,7 +81,9 @@ class SpelunkyRLEngine(gym.Env):
         self, action: Any
     ) -> Tuple[Dict, float, bool, bool, Dict[str, Any]]:
         
-        action = action.tolist() if not hasattr(self, 'action_to_input') else self.action_to_input(action.tolist())
+        action = np.asarray(action).tolist()
+        if hasattr(self, 'action_to_input'):
+            action = self.action_to_input(action)
         self._send_dict({
             "command": "step",
             "input": action,
@@ -105,16 +112,34 @@ class SpelunkyRLEngine(gym.Env):
     ############ Spelunky  Communicaton ############
 
     def close(self):
-        self._send_dict({
-            "command": "close"
-        })
-        
-        if hasattr(self, "game_process") and self.game_process is not None:
+        if getattr(self, "_closed", True):
+            return
+        self._closed = True
+        atexit.unregister(self.close)
+
+        server = getattr(self, "server", None)
+        if server is not None:
             try:
-                self.game_process.terminate()
-                self.game_process.wait(timeout=5)
-            except Exception:
+                self._send_dict({"command": "close"})
+            except OSError:
                 pass
+            server.close()
+        if getattr(self, "server_socket", None) is not None:
+            self.server_socket.close()
+        if getattr(self, "grabber", None) is not None:
+            self.grabber.stop()
+
+        for process in (getattr(self, "game_process", None), getattr(self, "launcher_process", None)):
+            if process is None:
+                continue
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except Exception:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
 
     def _game_init(self):
 
@@ -135,15 +160,15 @@ class SpelunkyRLEngine(gym.Env):
         port = self.server_socket.getsockname()[1]
         os.environ["Spelunky_RL_Port"] = str(port)
 
-        self.launcher_process = subprocess.Popen(
-            [executable_path] + args,
-            cwd=self.playlunky_dir,
-            shell=False,
-        )
+        def launch():
+            return subprocess.Popen([executable_path] + args, cwd=self.playlunky_dir)
+
+        self.launcher_process = launch()
+        launch_attempts = 1
         self.game_process = None
         self.server_socket.settimeout(0.05)
-
-
+        atexit.register(self.close)
+        deadline = time.monotonic() + self.startup_timeout
 
         while True:
             try:
@@ -151,6 +176,10 @@ class SpelunkyRLEngine(gym.Env):
                 break
             except socket.timeout:
                 pass
+
+            if time.monotonic() > deadline:
+                self.close()
+                raise TimeoutError(f"Spelunky 2 did not connect within {self.startup_timeout} s")
 
             if self.game_process is not None and self.game_process.is_running():
                 pass
@@ -162,16 +191,21 @@ class SpelunkyRLEngine(gym.Env):
                         if child.name().startswith("Spel2"):
                             self.game_process = child
 
+                elif launch_attempts < self.max_launch_attempts:
+                    self.launcher_process = launch()
+                    launch_attempts += 1
                 else:
-                    self.launcher_process = subprocess.Popen(
-                        [executable_path] + args,
-                        cwd=self.playlunky_dir,
-                        shell=True
-                    )
+                    self.close()
+                    raise RuntimeError(f"Playlunky exited {launch_attempts} times before the game connected")
 
-        atexit.register(self.close)
-        self.hwnd = get_hwnd_for_pid(self.game_process.pid)
+        self.server.settimeout(self.step_timeout)
         if self.render_enabled:
+            # Windows-only modules, imported here so the package imports on any platform
+            import win32gui
+            from .utils.frame_grabber import FrameGrabber
+            from .utils.window_management import get_hwnd_for_pid
+
+            self.hwnd = get_hwnd_for_pid(self.game_process.pid)
             self.grabber = FrameGrabber(self.hwnd)
             current_title = win32gui.GetWindowText(self.hwnd)
             new_title = f"R_{current_title}"
@@ -192,12 +226,13 @@ class SpelunkyRLEngine(gym.Env):
             gold: int = 0,
             world: int = 1,
             level: int = 1,
+            theme: Optional[int] = None,
             **kwargs
         ) -> None:
         
         if seed is None:
-            seed = random.randint(0, 2**32 - 1)
-        self._send_dict({
+            seed = int(self.np_random.integers(0, 2**32))
+        message = {
             "command": "reset",
             "speedup": speedup,
             "state_updates": state_updates,
@@ -212,7 +247,11 @@ class SpelunkyRLEngine(gym.Env):
             "gold": gold,
             "world": world,
             "level": level
-        })
+        }
+        # Lua picks the world's default theme; pass a THEME value to choose e.g. Volcana (3) or Temple (6)
+        if theme is not None:
+            message["theme"] = theme
+        self._send_dict(message)
 
     def _send_dict(self, payload: Dict[str, Any]) -> None:
         json_str = json.dumps(payload) + "\n"
@@ -221,7 +260,10 @@ class SpelunkyRLEngine(gym.Env):
     def _receive_dict(self) -> Dict[str, Any]:
         buffer = b""
         while not buffer.endswith(b"\n"):
-            data = self.server.recv(1024)
+            try:
+                data = self.server.recv(1024)
+            except socket.timeout:
+                raise TimeoutError(f"No response from the Spelunky Lua script in {self.step_timeout} s") from None
             if not data:
                 raise ConnectionError("Disconnected from Spelunky Lua script")
             buffer += data

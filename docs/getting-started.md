@@ -106,8 +106,14 @@ env = SpelunkyEnv(
     frames_per_step=6,                          # Optional: Game frames per RL step (default: 6)
     render_enabled=False,                       # Optional: Enable render() method (default: False)
     console=False,                              # Optional: Show Spelunky console (default: False)
+    step_timeout=60.0,                          # Optional: Max seconds to wait for the game each step
+    startup_timeout=180.0,                      # Optional: Max seconds for the game to start and connect
+    max_launch_attempts=3,                      # Optional: Relaunches if Playlunky exits early
 )
 ```
+
+If the game stops answering, `reset()`/`step()` raise `TimeoutError` instead of hanging.
+`close()` can be called any number of times; it also runs automatically at interpreter exit.
 
 ### Reset Options
 

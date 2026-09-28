@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     try:
         # Reset the environment
-        obs = env.reset()
+        obs, _ = env.reset()
 
         # Run forever (or until Ctrl+C)
         step_count = 0
@@ -66,7 +66,7 @@ if __name__ == "__main__":
             # Reset if episode ends (though in god mode this rarely happens)
             if done or truncated:
                 print(f"Episode ended after {step_count} steps. Resetting...")
-                obs = env.reset()
+                obs, _ = env.reset()
                 step_count = 0
 
     except KeyboardInterrupt:

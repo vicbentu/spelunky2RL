@@ -122,7 +122,7 @@ def test_single_env(env_class, duration: float, spelunky_dir: str,
     )
 
     print("Running benchmark...")
-    obs = env.reset()
+    obs, _ = env.reset()
 
     start_time = time.time()
     end_time = start_time + duration
@@ -134,8 +134,8 @@ def test_single_env(env_class, duration: float, spelunky_dir: str,
             obs, reward, done, truncated, info = env.step(action)
             step_count += 1
 
-            if done:
-                obs = env.reset()
+            if done or truncated:
+                obs, _ = env.reset()
     finally:
         env.close()
 

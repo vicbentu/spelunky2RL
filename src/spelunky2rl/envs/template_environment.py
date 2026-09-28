@@ -84,6 +84,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
         # "gold": 0,                # Starting gold
         # "world": 1,               # Which world (1-16, see overlunky THEME enum)
         # "level": 1,               # Which level in the world
+        # "theme": None,            # THEME id; None = the world's default (e.g. 3 = Volcana for world 2)
         # "speedup": False,         # Allow game to run faster than 60 FPS
         # "state_updates": 0,       # Engine updates without rendering (increases speed)
     }

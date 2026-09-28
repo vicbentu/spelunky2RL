@@ -89,7 +89,8 @@ class SpelunkyEnv(SpelunkyRLEngine):
         observation["map_info"] = np.array(gamestate["map_info"], dtype=np.int32)[np.newaxis]
         observation["char_state"] = np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22))
         observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
-        observation["enemies"] = [
+        # Gymnasium's Sequence space only contains tuples
+        observation["enemies"] = tuple(
             (
                 np.array([ent[0]], dtype=np.float32),
                 np.array([ent[1]], dtype=np.float32),
@@ -100,7 +101,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
                 np.array([ent[6]], dtype=np.float32)
             )
             for ent in gamestate["entity_info"]
-            if 219 <= ent[4] <= 342  # filtrar por tipo
-        ]
+            if 219 <= ent[4] <= 342  # filter by type
+        )
 
         return observation

@@ -200,7 +200,8 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         # Entity list (variable length)
         # Each entity in gamestate["entity_info"] is: [dx, dy, vx, vy, type, face_left, holding_type]
-        observation["entities"] = [
+        # Gymnasium's Sequence space only contains tuples
+        observation["entities"] = tuple(
             (
                 np.array([ent[0]], dtype=np.float32),  # dx
                 np.array([ent[1]], dtype=np.float32),  # dy
@@ -210,7 +211,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
                 int(ent[5]),                            # face_left
             )
             for ent in gamestate["entity_info"]
-        ]
+        )
 
         # Character state (clamp to valid range)
         char_state_raw = gamestate["basic_info"]["char_state"]

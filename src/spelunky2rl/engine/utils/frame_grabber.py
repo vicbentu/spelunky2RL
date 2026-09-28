@@ -1,4 +1,4 @@
-import threading, ctypes
+import threading
 import win32gui, win32ui
 import numpy as np
 
@@ -22,13 +22,14 @@ class FrameGrabber(threading.Thread):
 
         self._buf  = (ctypes.c_char * (self.w * self.h * 4))()
         self.frame = np.empty((self.h, self.w, 3), dtype=np.uint8)
+        self._stop_event = threading.Event()
 
         self.start()
 
     def run(self):
         gdi  = ctypes.windll.gdi32
         user = ctypes.windll.user32
-        while True:
+        while not self._stop_event.is_set():
             user.PrintWindow(self.hwnd, self.saveDC.GetSafeHdc(), 2)
             gdi.GetBitmapBits(self.bmp.GetHandle(), len(self._buf),
                               ctypes.byref(self._buf))
@@ -36,8 +37,9 @@ class FrameGrabber(threading.Thread):
                 self.frame,
                 np.frombuffer(self._buf, dtype=np.uint8)
                   .reshape(self.h, self.w, 4)[..., :3][:, :, ::-1])
-            
-            self.frame = self.frame.copy()
+
+    def stop(self):
+        self._stop_event.set()
 
     def get_frame(self):
         return self.frame.copy()
