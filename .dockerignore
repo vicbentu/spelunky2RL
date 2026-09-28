@@ -1,0 +1,5 @@
+# Allowlist: the image only needs these
+*
+!docker/
+!src/spelunky2rl/mod/
+!src/spelunky2rl/engine/launchers/config/
