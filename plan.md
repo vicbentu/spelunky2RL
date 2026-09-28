@@ -300,7 +300,11 @@ Decisiones:
   como registro. Su contenido útil se reescribe limpio en `docker/` y `engine/launchers/`.
 - `environments/` pasa a `envs/`; `engine/utils/` desaparece (su contenido va a `frames/`).
 
-### Migración (primer paso, antes de tocar lógica)
+### Migración (primer paso, antes de tocar lógica) — HECHA
+
+Rama `refactor/spelunky2rl`, commit "Move to src layout and rename package to spelunky2rl".
+Verificado: `pip install .` en venv limpio incluye `mod/lua` y las DLL; el Lua movido carga
+`luasocket` y `jumper` dentro del juego (contenedor de pruebas, ~1.440 pasos/s).
 
 En una rama sobre `main`, commit solo de estructura para que el diff sea revisable:
 
