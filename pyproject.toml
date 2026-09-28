@@ -5,12 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spelunky2rl"
 version = "0.1.0"
+description = "Gymnasium environments for Spelunky 2 reinforcement learning"
+readme = "readme.md"
+requires-python = ">=3.9"
 
 # Core dependencies - required for basic SpelunkyRL functionality
 dependencies = [
     "gymnasium",
     "numpy",
-    "pywin32",
+    "pywin32; sys_platform == 'win32'",
     "psutil",
 ]
 
@@ -26,6 +29,12 @@ train = [
 # For recording videos (examples/record_video.py)
 video = [
     "opencv-python",
+]
+
+# Tests and linting
+dev = [
+    "pytest",
+    "ruff",
 ]
 
 # Install everything
