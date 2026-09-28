@@ -414,25 +414,27 @@ env = SpelunkyEnv(frames_per_step=6)  # Default: 6 frames (~10 actions/sec at 60
 
 ### State Updates (Speedup)
 
-`state_updates` skips rendering and some game updates:
+`state_updates` makes each rendered frame carry N extra logic frames:
 
 ```python
-env.reset(state_updates=200)
+env.reset(speedup=True, state_updates=200)
 ```
 
-**How it works** (Lua side):
-- For each RL step, run N "update only" frames
-- These frames update physics but skip rendering
-- Can increase speed 10-100x
+**How it works** (Lua side): in `ON.POST_UPDATE`, after the protocol work, the mod calls
+`update_state()` N times. Each call simulates one logic frame and fires `POST_UPDATE` again, which
+runs the protocol for that frame (so steps and replies happen inside the loop); a flag stops those
+nested calls from starting their own loop. Earlier versions recursed instead, N levels deep, which
+is why high values used to crash.
 
-**Limitations**:
-- Maximum value depends on requested data
-- Too high causes crashes (varies by environment)
-- Cannot use with `render_enabled=True`
+**Limits**: above ~50 the game is no longer the bottleneck; the per-step exchange with Python is.
+Do not combine with `render_enabled=True`: captured frames would skip most of the action.
+
+With `render_enabled=False` the mod also returns `true` from `ON.RENDER_PRE_GAME` and
+`ON.RENDER_PRE_HUD`, so the level is not drawn at all (+~20 % steps/s without `state_updates`).
 
 ### Speedup Flag
 
-`speedup=True` removes the 60 FPS cap:
+`speedup=True` makes the game run faster than real time (a 100x speedhack on the game's clock):
 
 ```python
 env.reset(speedup=True)

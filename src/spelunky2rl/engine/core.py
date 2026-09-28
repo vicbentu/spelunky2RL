@@ -214,6 +214,8 @@ class SpelunkyRLEngine(gym.Env):
             world: int = 1,
             level: int = 1,
             theme: Optional[int] = None,
+            time_ghost: bool = True,
+            audio: bool = False,
             **kwargs
         ) -> None:
 
@@ -233,7 +235,13 @@ class SpelunkyRLEngine(gym.Env):
             "ropes": ropes,
             "gold": gold,
             "world": world,
-            "level": level
+            "level": level,
+            # the ghost that appears after 3 minutes slows the game down about 8x
+            "time_ghost": time_ghost,
+            "audio": audio,
+            "vsync": False,
+            # skip drawing when nobody reads the frames
+            "render": self.render_enabled,
         }
         # Lua picks the world's default theme; pass a THEME value to choose e.g. Volcana (3) or Temple (6)
         if theme is not None:

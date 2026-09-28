@@ -23,7 +23,8 @@ local transition = 0
 local speedup = false
 local manual_control = false
 local state_updates = 0
-local state_update_counter = 0
+local fast_forwarding = false  -- inside our own update_state() calls
+local render_enabled = true
 local data = {
     frames = 0,
     command = "pass"
@@ -471,6 +472,12 @@ set_callback(function()
             speedup = data["speedup"]
             state_updates = data["state_updates"]
             set_speedhack(speedup and 100 or 1)
+            if data["vsync"] ~= nil then set_setting(GAME_SETTING.VSYNC, data["vsync"] and 1 or 0) end
+            if data["audio"] ~= nil then set_setting(GAME_SETTING.MASTER_ENABLED, data["audio"] and 1 or 0) end
+            if data["time_ghost"] ~= nil then set_time_ghost_enabled(data["time_ghost"]) end
+            if data["render"] ~= nil then
+                render_enabled = data["render"]
+            end
             manual_control = data["manual_control"]
             if data["god_mode"] then
                 god(true)
@@ -499,16 +506,27 @@ set_callback(function()
         end
 
     end 
-    if speedup then
-        state_update_counter = state_update_counter - 1
-        if state_update_counter <= 0 then
-            state_update_counter = state_updates
-            return
+    -- Speedup: simulate state_updates extra logic frames per rendered frame. update_state() fires
+    -- POST_UPDATE again (this same callback, which also runs the protocol above); the flag keeps
+    -- those nested calls from starting their own loop, which used to recurse state_updates deep.
+    if speedup and not fast_forwarding then
+        fast_forwarding = true
+        for _ = 1, state_updates do
+            update_state()
         end
-        update_state()
+        fast_forwarding = false
     end
 end, ON.POST_UPDATE)
 
 set_callback(function()
     transition = 1
 end, ON.TRANSITION)
+
+-- Headless: skip drawing the level and the HUD when nobody looks at the frames
+set_callback(function()
+    if not render_enabled then return true end
+end, ON.RENDER_PRE_GAME)
+
+set_callback(function()
+    if not render_enabled then return true end
+end, ON.RENDER_PRE_HUD)

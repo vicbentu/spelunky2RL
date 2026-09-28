@@ -164,7 +164,7 @@ obs, info = env.reset(
 |-----------|------|---------|-------------|
 | `seed` | int | Random | Random seed for level generation |
 | `speedup` | bool | False | Allow game to run faster than 60 FPS |
-| `state_updates` | int | 0 | Engine updates without rendering (speeds up training, 100-300 typical) |
+| `state_updates` | int | 0 | Extra logic frames simulated per rendered frame when `speedup` (50-200 typical) |
 | `manual_control` | bool | False | Enable keyboard control (useful for testing) |
 | `god_mode` | bool | False | Player invulnerability |
 | `hp` | int | 4 | Starting health |
@@ -174,6 +174,9 @@ obs, info = env.reset(
 | `world` | int | 1 | Starting world (1-16, see [THEME](https://spelunky-fyi.github.io/overlunky/#THEME)) |
 | `level` | int | 1 | Starting level within world |
 | `ent_types_to_destroy` | list | [] | Entity type IDs to remove at level start |
+| `theme` | int | None | Overlunky THEME id; None = the usual theme for `world`/`level` |
+| `time_ghost` | bool | True | The ghost that appears after 3 minutes; it slows the game ~8x, disable for long episodes |
+| `audio` | bool | False | Game audio |
 
 ## Performance Optimization
 
@@ -182,7 +185,7 @@ For training, you'll want to maximize speed:
 ```python
 env = SpelunkyEnv(
     speedup=True,           # Run faster than real-time
-    state_updates=200,      # Skip rendering frequently (test different values)
+    state_updates=200,      # Extra logic frames per rendered frame
     render_enabled=False,   # Don't capture frames
 
     # Training settings
@@ -190,7 +193,10 @@ env = SpelunkyEnv(
 )
 ```
 
-**Note**: `state_updates` can dramatically increase speed but may crash if set too high. Start with 100-200 and increase gradually. Do not use `state_updates` when `render_enabled=True`.
+**Note**: with `render_enabled=False` the game also skips drawing the level. Above `state_updates≈50`
+the game is no longer the bottleneck (about 1,700 steps/s per instance with `frames_per_step=6`
+measured on a Ryzen 9 7900X); the rest is the per-step exchange with Python. Do not use
+`state_updates` when `render_enabled=True`: the frames you capture would skip most of the action.
 
 ## Manual Control (Testing)
 
@@ -259,19 +265,17 @@ Available log options:
 ## Troubleshooting
 
 **Environment won't start:**
-- Verify paths to `Spel2.exe` and `playlunky_launcher.exe` are correct
-- Make sure modlunky2 is properly configured
-- Check that `load_order.txt` exists in your Spelunky 2 Mods folder
+- Run `spelunky2rl doctor`
+- The error message ends with the launcher's recent output (the container's, on Linux)
+- Windows: check `SPELUNKY2RL_PLAYLUNKY_DIR` and that Overlunky is installed in the game folder
 
 **Game is too slow:**
 - Set `speedup=True`
 - Increase `state_updates` (start with 100, increase gradually)
 - Decrease `frames_per_step` (but this affects agent reactivity)
 
-**Game crashes with high state_updates:**
-- Lower the value - the maximum depends on what data you're requesting
-- Different environments can handle different values
-- Start conservative (100-200) and increase gradually
+**Slow episodes after 3 minutes of game time:**
+- That is the ghost; pass `time_ghost=False`
 
 **Import errors:**
 - Make sure you've installed the package: `pip install .`

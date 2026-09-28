@@ -39,6 +39,16 @@ def test_reset_options_reach_lua(make_env):
     assert "theme" not in env.fake_lua.messages[-1]
 
 
+def test_headless_defaults_reach_lua(make_env):
+    env = make_env(DefaultEnv)
+    env.reset(seed=0)
+    message = env.fake_lua.messages[-1]
+    assert message["render"] is False and message["vsync"] is False and message["audio"] is False
+    assert message["time_ghost"] is True
+    env.reset(seed=0, time_ghost=False)
+    assert env.fake_lua.messages[-1]["time_ghost"] is False
+
+
 @pytest.mark.parametrize("action", [[2, 1, 1], (2, 1, 1), np.array([2, 1, 1])])
 def test_action_types(make_env, action):
     env = make_env(GetToExit)
