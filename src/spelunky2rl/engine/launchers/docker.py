@@ -83,6 +83,7 @@ class DockerLauncher(Launcher):
         self.use_gpu = self._resolve_gpu()
         self.container = None
         self.display = None
+        self._starts = 0
         self._process = None
         self._output = collections.deque(maxlen=50)
 
@@ -95,8 +96,8 @@ class DockerLauncher(Launcher):
                                "(needs nvidia-smi and the NVIDIA Container Toolkit). Use renderer='cpu' or 'auto'.")
         return has_gpu
 
-    def command(self, port: int) -> List[str]:
-        cmd = [self.docker, "run", "--rm", "--name", f"spelunky2rl-{port}", "--network", "host",
+    def command(self, port: int, name: Optional[str] = None) -> List[str]:
+        cmd = [self.docker, "run", "--rm", "--name", name or f"spelunky2rl-{port}", "--network", "host",
                # X display numbers must be unique host-wide; the port already is
                "-e", f"PORT={port}", "-e", f"DISPLAYNUM={port}",
                "-e", f"RENDERER={'cpu' if self.renderer == 'cpu' else 'auto'}",
@@ -113,10 +114,12 @@ class DockerLauncher(Launcher):
 
     def start(self, port: int) -> None:
         ensure_image(self.image, self.docker)
-        self.container = f"spelunky2rl-{port}"
+        self._starts += 1
+        # a relaunch must not collide with the previous container while Docker is still removing it
+        self.container = f"spelunky2rl-{port}" + (f"-{self._starts}" if self._starts > 1 else "")
         self.display = f":{port}"
         self._output.clear()
-        self._process = subprocess.Popen(self.command(port), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        self._process = subprocess.Popen(self.command(port, self.container), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                          stdin=subprocess.DEVNULL, text=True, errors="replace")
         threading.Thread(target=self._drain, args=(self._process,), daemon=True).start()
 

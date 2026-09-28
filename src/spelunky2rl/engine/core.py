@@ -169,12 +169,11 @@ class SpelunkyRLEngine(gym.Env):
 
         try:
             with self.launcher.starting(self.startup_timeout):
-                connection = self._launch_and_accept(port)
-                hello = check_hello(connection.receive(timeout=HELLO_TIMEOUT))
+                self.server = self._launch_and_accept(port)
+                hello = check_hello(self.server.receive(timeout=HELLO_TIMEOUT))
         except BaseException:
             self.close()
             raise
-        self.server = connection
         self.mod_version = hello.get("mod")
 
         if self.render_enabled:

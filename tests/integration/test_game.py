@@ -21,6 +21,11 @@ def running_containers():
     return out.stdout.split()
 
 
+def own_containers(envs):
+    names = {env.launcher.container for env in envs if getattr(env.launcher, "container", None)}
+    return names & set(running_containers())
+
+
 def test_episode_and_cleanup():
     env = DefaultEnv(**FAST)
     try:
@@ -35,7 +40,7 @@ def test_episode_and_cleanup():
     finally:
         env.close()
     time.sleep(1)
-    assert not running_containers()
+    assert not own_containers([env])
 
 
 def test_same_seed_same_level():
@@ -53,6 +58,7 @@ def test_same_seed_same_level():
 
 @pytest.mark.parametrize("n", [4])
 def test_parallel_envs(n):
+    before = set(running_containers())
     envs = gym.vector.AsyncVectorEnv([lambda: GetToExit(**FAST) for _ in range(n)])
     try:
         envs.reset(seed=0)
@@ -63,7 +69,7 @@ def test_parallel_envs(n):
     finally:
         envs.close()
     time.sleep(1)
-    assert not running_containers()
+    assert set(running_containers()) <= before
 
 
 def test_render_returns_game_frames():
