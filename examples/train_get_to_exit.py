@@ -28,7 +28,6 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import gymnasium as gym
 from typing import Dict
 import numpy as np
@@ -95,8 +94,8 @@ class SpelunkyFeaturesExtractor(BaseFeaturesExtractor):
 
     Input:
         - map_info: (C, H, W) multi-hot encoded map (5 channels: empty, stairs, exit, platform, ground)
-        - char_state: scalar int representing player animation state
-        - can_jump: binary flag (0 or 1)
+        - char_state: player animation state, one-hot (B, 23) after SB3's preprocessing
+        - can_jump: one-hot (B, 2) after SB3's preprocessing
 
     Output:
         - features_dim dimensional feature vector
@@ -131,12 +130,9 @@ class SpelunkyFeaturesExtractor(BaseFeaturesExtractor):
             map_flatten = self.map_cnn(dummy).shape[1]
 
         # -------- Player Features -----------------------------------------------
-        char_space = observation_space["char_state"]
-        self.n_char_states = char_space.n if isinstance(char_space, gym.spaces.Discrete) \
-                             else int(char_space.high) + 1
-
-        # Player features: one-hot char_state + can_jump binary
-        extra_flatten = self.n_char_states + 1
+        # SB3 already one-hot encodes Discrete observations before the extractor:
+        # char_state arrives as (B, 23) and can_jump as (B, 2)
+        extra_flatten = observation_space["char_state"].n + observation_space["can_jump"].n
 
         # -------- Final Projection ----------------------------------------------
         self.linear = nn.Linear(map_flatten + extra_flatten, features_dim)
@@ -148,15 +144,10 @@ class SpelunkyFeaturesExtractor(BaseFeaturesExtractor):
         map_features = self.map_cnn(map_input)
 
         # ---- Process Player State ----------------------------------------------
-        # One-hot encode character state
-        char_idx = observations["char_state"].long().view(-1)
-        char_ohe = F.one_hot(char_idx, num_classes=self.n_char_states).float()
-
-        # Can jump binary flag
-        jump_feat = observations["can_jump"].float().view(-1, 1)
-
-        # Combine player features
-        extra_feats = torch.cat([char_ohe, jump_feat], dim=1)
+        # Already one-hot (see __init__); rollouts give (B, n) and training batches (B, 1, n)
+        batch = map_features.shape[0]
+        extra_feats = torch.cat([observations["char_state"].float().reshape(batch, -1),
+                                 observations["can_jump"].float().reshape(batch, -1)], dim=1)
 
         # ---- Combine All Features ----------------------------------------------
         all_feats = torch.cat([map_features, extra_feats], dim=1)
