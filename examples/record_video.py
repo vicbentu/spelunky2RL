@@ -225,7 +225,7 @@ def record_agent_video(
             video_writer.release()
             env.close()
             print(f"Partial video saved to: {output_file}")
-        except:
+        except Exception:
             pass
 
     except Exception as e:
@@ -238,7 +238,7 @@ def record_agent_video(
         try:
             video_writer.release()
             env.close()
-        except:
+        except Exception:
             pass
 
 

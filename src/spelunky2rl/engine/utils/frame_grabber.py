@@ -1,5 +1,6 @@
 import threading
-import win32gui, win32ui
+import win32gui
+import win32ui
 import numpy as np
 
 import ctypes

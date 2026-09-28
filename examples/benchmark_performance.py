@@ -32,7 +32,7 @@ Available environments:
 
 import time
 import argparse
-from typing import Tuple, Optional
+from typing import Tuple
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.monitor import Monitor
 
@@ -108,7 +108,7 @@ def test_single_env(env_class, duration: float, spelunky_dir: str,
     Returns:
         Tuple of (total_steps, elapsed_time, steps_per_second)
     """
-    print(f"Initializing single environment...")
+    print("Initializing single environment...")
 
     env = env_class(
         frames_per_step=6,
@@ -294,7 +294,7 @@ Examples:
             sps_per_env = sps / num_envs
             results.append((config_name, num_envs, steps, elapsed, sps, sps_per_env, speedup))
 
-            print(f"\nResults:")
+            print("\nResults:")
             print(f"  Total steps: {steps}")
             print(f"  Time: {elapsed:.2f}s")
             print(f"  Steps/sec (total): {sps:.2f}")
@@ -302,7 +302,7 @@ Examples:
             if baseline_sps and num_envs > 1:
                 print(f"  Speedup: {speedup:.2f}x")
         else:
-            print(f"\nFAILED: Benchmark failed for this configuration")
+            print("\nFAILED: Benchmark failed for this configuration")
             results.append((config_name, num_envs, 0, 0, 0, 0, 0))
 
         print()

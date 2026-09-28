@@ -72,7 +72,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
             reward_val += (((60*90) - gamestate["basic_info"]["time"]) / (60*90))*5
             info["success"] = True
             info["time"] = gamestate["basic_info"]["time"]
-        
+
         # No progress, clipping
         if gamestate["dist_to_goal"] < getattr(self, "min_dist_to_goal", float("inf")):
             self.min_dist_to_goal = gamestate["dist_to_goal"]
@@ -93,7 +93,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
 
         # Reward getting close to the goal
         reward_val += (last_gamestate["dist_to_goal"] - gamestate["dist_to_goal"])*0.1
-        
+
         return float(reward_val), done, truncated, info
 
     def gamestate_to_observation(self, gamestate):

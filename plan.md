@@ -357,31 +357,37 @@ Se mantiene el nombre de la clase `SpelunkyRLEngine` (no es el nombre del paquet
 
 ## 4. Fases
 
-### Fase 0. Saneamiento (1-2 días, sin cambiar plataforma)
+### Fase 0. Saneamiento (1-2 días, sin cambiar plataforma) — HECHA
+
+Hecho en `refactor/spelunky2rl`. Extras respecto a la lista: las observaciones `Sequence`
+(`default_environment`, `enemy_killer`) devolvían listas y Gymnasium solo acepta tuplas (lo
+encontraron los tests); opción `theme` en `reset`; el Lua sale si Python desaparece; los imports
+perezosos de pywin32 (Fase 1) se adelantaron para poder correr los tests en Linux.
+El CI no se ha ejecutado todavía en GitHub (falta hacer push).
 
 Todo verificable en Windows con el setup actual, o con tests unitarios sin juego.
 
-- [ ] `pyproject.toml` (tras la migración de la sección 3.1): `package-data` para `mod/**` y el `.md` de `id2name`,
+- [x] `pyproject.toml` (tras la migración de la sección 3.1): `package-data` para `mod/**` y el `.md` de `id2name`,
       `pywin32; sys_platform == 'win32'`, `requires-python >= 3.9`, `readme`, `license`.
-- [ ] Separar `terminated` y `truncated` en los cinco entornos.
-- [ ] `enemy_killer.py`: invertir signo de la recompensa; arreglar shape y dtype de `map_info`.
-- [ ] `main.lua:284`: `face_left and 1 or 0`. Idem en `get_info` para el jugador si aplica.
-- [ ] `main.lua:203`: mapear `world` a `THEME` correctamente en `warp`.
-- [ ] Seed con `self.np_random.integers(0, 2**32)`.
-- [ ] `close()` idempotente: `try/except`, cerrar `server` y `server_socket`, terminar launcher
+- [x] Separar `terminated` y `truncated` en los cinco entornos.
+- [x] `enemy_killer.py`: invertir signo de la recompensa; arreglar shape y dtype de `map_info`.
+- [x] `main.lua:284`: `face_left and 1 or 0`. Idem en `get_info` para el jugador si aplica.
+- [x] `main.lua:203`: mapear `world` a `THEME` correctamente en `warp`.
+- [x] Seed con `self.np_random.integers(0, 2**32)`.
+- [x] `close()` idempotente: `try/except`, cerrar `server` y `server_socket`, terminar launcher
       y árbol de procesos, parar `FrameGrabber`, `atexit.unregister`.
-- [ ] `settimeout` configurable en el socket de datos; límite de intentos y timeout en el arranque.
-- [ ] `FrameGrabber` con bandera de parada y sin `copy()` por iteración.
-- [ ] Clip de `char_state`, quitar `press_ctrlf4` y `self.custom_param`, `obs, _ = env.reset()`
+- [x] `settimeout` configurable en el socket de datos; límite de intentos y timeout en el arranque.
+- [x] `FrameGrabber` con bandera de parada y sin `copy()` por iteración.
+- [x] Clip de `char_state`, quitar `press_ctrlf4` y `self.custom_param`, `obs, _ = env.reset()`
       en los ejemplos, `time / self.frames_per_step` en `get_to_exit`, sincronizar docstrings de
       `gold_grabber`, `action = np.asarray(action).tolist()`.
-- [ ] Lua: `local` en las globals accidentales; comprobar `err` en `client:receive`;
+- [x] Lua: `local` en las globals accidentales; comprobar `err` en `client:receive`;
       revertir `set_speedhack` y liberar `steal_input` en `reset`/`close`.
-- [ ] (Resuelto por la sección 3.1: el pack del mod se llama `spelunky2rl` y ya no depende del nombre del repo.)
-- [ ] Tests unitarios con un Lua falso (servidor TCP en Python que responde JSON): protocolo,
+- [x] (Resuelto por la sección 3.1: el pack del mod se llama `spelunky2rl` y ya no depende del nombre del repo.)
+- [x] Tests unitarios con un Lua falso (servidor TCP en Python que responde JSON): protocolo,
       `gamestate_to_observation` contra `observation_space` (usar `observation_space.contains`),
       `reward_function` con estados sintéticos.
-- [ ] CI (GitHub Actions) con lint y tests, sin juego.
+- [x] CI (GitHub Actions) con lint y tests, sin juego.
 
 ### Fase 1. Capa de abstracción y lanzadores
 

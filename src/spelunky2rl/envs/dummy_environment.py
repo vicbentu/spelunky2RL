@@ -26,7 +26,7 @@ Use Cases:
 
 import numpy as np
 import gymnasium as gym
-from gymnasium.spaces import Dict, Box, Discrete
+from gymnasium.spaces import Dict, Discrete
 
 from spelunky2rl import SpelunkyRLEngine
 

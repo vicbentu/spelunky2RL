@@ -8,7 +8,7 @@ SpelunkyRLEngine. Copy this file and modify it to create your own custom environ
 
 import numpy as np
 import gymnasium as gym
-from gymnasium.spaces import Dict, Box, Discrete, MultiDiscrete
+from gymnasium.spaces import Dict, Box, Discrete
 
 from spelunky2rl import SpelunkyRLEngine
 

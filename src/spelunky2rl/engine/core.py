@@ -1,4 +1,10 @@
-import os, socket, subprocess, json, atexit, psutil, time
+import os
+import socket
+import subprocess
+import json
+import atexit
+import psutil
+import time
 from datetime import datetime
 from typing import Any, Dict, Tuple, List, Optional
 from collections import Counter
@@ -22,7 +28,7 @@ class SpelunkyRLEngine(gym.Env):
         2, # Rope
         2, # Run
         2, # Door
-    ]) 
+    ])
 
     observation_space: gym.spaces.Dict
 
@@ -67,11 +73,11 @@ class SpelunkyRLEngine(gym.Env):
         seed: Optional[int] = None,
         **kwargs
     ) -> Tuple[Dict, Dict[str, Any]]:
-        
+
         super().reset(seed=seed)
         self._game_reset(seed=seed, **(self.reset_options|kwargs))
-        
-        gamestate = self._receive_dict() 
+
+        gamestate = self._receive_dict()
         self.last_gamestate = gamestate
         observation = self.gamestate_to_observation(gamestate)
         return observation, {}
@@ -80,7 +86,7 @@ class SpelunkyRLEngine(gym.Env):
     def step(
         self, action: Any
     ) -> Tuple[Dict, float, bool, bool, Dict[str, Any]]:
-        
+
         action = np.asarray(action).tolist()
         if hasattr(self, 'action_to_input'):
             action = self.action_to_input(action)
@@ -90,7 +96,7 @@ class SpelunkyRLEngine(gym.Env):
             "frames": self.frames_per_step,
             "data_to_send": getattr(self, "data_to_send", [])
         })
-        
+
         gamestate = self._receive_dict()
 
         info = {
@@ -106,8 +112,8 @@ class SpelunkyRLEngine(gym.Env):
         observation = self.gamestate_to_observation(gamestate)
 
         return observation, reward, done, truncated, info
-    
-    
+
+
 
     ############ Spelunky  Communicaton ############
 
@@ -153,7 +159,7 @@ class SpelunkyRLEngine(gym.Env):
         with open(load_order_path, "w") as f:
             f.write("spelunky2rl\n")
 
-        
+
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(('127.0.0.1', 0))
         self.server_socket.listen(1)
@@ -217,7 +223,7 @@ class SpelunkyRLEngine(gym.Env):
             speedup: bool = False,
             state_updates: int = 0,
 
-            ent_types_to_destroy = [],
+            ent_types_to_destroy = (),
             manual_control: bool = False,
             god_mode: bool = False,
             hp: int = 4,
@@ -229,7 +235,7 @@ class SpelunkyRLEngine(gym.Env):
             theme: Optional[int] = None,
             **kwargs
         ) -> None:
-        
+
         if seed is None:
             seed = int(self.np_random.integers(0, 2**32))
         message = {
@@ -237,7 +243,7 @@ class SpelunkyRLEngine(gym.Env):
             "speedup": speedup,
             "state_updates": state_updates,
             "seed": seed,
-            "ent_types_to_destroy": ent_types_to_destroy,
+            "ent_types_to_destroy": list(ent_types_to_destroy),
             "data_to_send": self.data_to_send,
             "manual_control": manual_control,
             "god_mode": god_mode,
@@ -256,7 +262,7 @@ class SpelunkyRLEngine(gym.Env):
     def _send_dict(self, payload: Dict[str, Any]) -> None:
         json_str = json.dumps(payload) + "\n"
         self.server.sendall(json_str.encode("utf-8"))
-    
+
     def _receive_dict(self) -> Dict[str, Any]:
         buffer = b""
         while not buffer.endswith(b"\n"):
@@ -271,12 +277,12 @@ class SpelunkyRLEngine(gym.Env):
         dict = json.loads(json_str)
         if "error" in dict:
             raise RuntimeError(dict["error"])
-            
+
         return dict
 
-    
-    ############ Render ############ 
-    
+
+    ############ Render ############
+
     metadata = {"render_modes": ["rgb_array"], "render_fps": 60}
 
     def render(self, mode="rgb_array"):
@@ -284,9 +290,9 @@ class SpelunkyRLEngine(gym.Env):
             raise NotImplementedError
         if self.render_enabled is False:
             raise RuntimeError("Use render_enabled=True on init to be able to record replays")
-        
+
         return self.grabber.get_frame()
-    
+
 
 
     ########### Log ################
