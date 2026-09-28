@@ -2,68 +2,92 @@
 
 This guide will walk you through installing and running your first SpelunkyRL environment.
 
-## Prerequisites
+SpelunkyRL drives a real copy of Spelunky 2. Python runs where you train; each environment
+starts its own game instance and closes it on `env.close()`. There are two ways to run the game:
 
-### Required Software
+| | Linux (recommended) | Windows |
+|---|---|---|
+| How the game runs | one Docker container per environment, headless | natively, with a window per environment |
+| What you install | Docker (+ NVIDIA Container Toolkit for GPU) | modlunky2, Playlunky, Overlunky |
+| Steam at runtime | no | no (use a separate modding copy) |
 
-1. **Spelunky 2** - The base game must be installed
-2. **Python 3.8+** - For running the RL environment
-3. **Windows 11** - Required for full functionality (older versions may work but render mode might have issues)
+## You need your own copy of the game
 
-### Required Tools
+Spelunky 2 is not included anywhere, including the Docker image. Buy it on Steam, install it once,
+and copy the whole folder (the one with `Spel2.exe`) somewhere else. Use that copy for SpelunkyRL:
+modding tools should never touch your Steam installation. Steam is not needed after that: on Linux
+the image swaps in the [Goldberg emulator](https://github.com/Detanup01/gbe_fork) for the Steam API.
 
-Before installing SpelunkyRL, you must set up the Spelunky 2 modding infrastructure:
-
-1. **[modlunky2](https://github.com/spelunky-fyi/modlunky2)** - Essential mod management tool
-   - Follow the installation instructions in their repository
-   - **Important**: Do not use modding tools with your Steam installation. Create a separate copy of Spelunky 2 for modding.
-
-2. **[Playlunky](https://github.com/spelunky-fyi/Playlunky)** - Enables mod loading and script injection
-   - Usually installed automatically by modlunky2
-
-## Installation
-
-### Step 1: Find Your Paths
-
-You'll need two important paths. To find them:
-
-1. Open modlunky2
-2. Go to Settings
-3. Note the **Spelunky 2 installation directory** (where `Spel2.exe` is located)
-4. Click **User Directories** → **Data**
-5. In the file explorer that opens, navigate to the `playlunky` folder
-6. Copy the path to any Playlunky version folder (e.g., `playlunky/nightly`)
-
-![modlunky2 configuration](modlunky2config.png)
-
-### Step 2: Clone the Repository
-
-Clone SpelunkyRL anywhere and link its mod pack into your Spelunky 2 Mods folder
-(the pack lives in `src/spelunky2rl/mod` and must be named `spelunky2rl`):
+Then tell SpelunkyRL where the copy is, once:
 
 ```bash
-git clone https://github.com/vicbentu/spelunky2RL.git
-mklink /J "C:\Path\To\Your\Spelunky 2\Mods\Packs\spelunky2rl" "C:\Path\To\spelunky2RL\src\spelunky2rl\mod"
+export SPELUNKY2RL_GAME_DIR="/path/to/Spelunky 2"      # Linux
+setx SPELUNKY2RL_GAME_DIR "C:\Games\Spelunky 2"       # Windows (new terminals)
 ```
 
-### Step 3: Create Virtual Environment
+or pass `game_dir="..."` when creating an environment.
 
-It's recommended to use a virtual environment (can be anywhere on your system):
+## Installation on Linux (Docker)
 
-```bash
-# Create virtual environment
-python -m venv spelunky_env
+1. Install [Docker Engine](https://docs.docker.com/engine/install/) and make sure your user can run
+   `docker` without sudo. For GPU rendering also install the
+   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/);
+   without it the game renders on the CPU (slower with many instances, but works).
+2. Install the package (Python 3.9+, in a virtual environment):
 
-# Activate it (Windows)
-spelunky_env\Scripts\activate
-```
+   ```bash
+   git clone https://github.com/vicbentu/spelunky2RL.git
+   cd spelunky2RL
+   pip install .              # add [render] for render(), [train] for the training examples
+   ```
 
-### Step 4: Install SpelunkyRL
+3. Get the game image. Either pull it, or build it from the repo (a few minutes):
 
-```bash
-# From the cloned repo directory
-pip install .
-```
+   ```bash
+   spelunky2rl pull
+   # or: docker build -f docker/Dockerfile -t ghcr.io/vicbentu/spelunky2rl-game:$(python -c "import spelunky2rl.version as v; print(v.__version__)") .
+   ```
+
+4. Check everything:
+
+   ```bash
+   spelunky2rl doctor
+   ```
+
+Each environment then runs `docker run --rm ...` on creation and kills its container on `close()`.
+Nothing keeps running when no environment is open. The first start of a new game version takes
+~20 s while Playlunky builds its asset cache in `~/.cache/spelunky2rl`; later starts take ~8 s.
+
+**Without Docker** (development): `scripts/setup_wine.sh` installs the same pieces for the host's Wine,
+then use `launcher="wine"` or `SPELUNKY2RL_LAUNCHER=wine`.
+
+**Editing the Lua mod**: set `SPELUNKY2RL_DEV_MOD=/path/to/spelunky2RL/src/spelunky2rl/mod/lua` and new
+environments load it instead of the copy in the image; no rebuild needed.
+
+## Installation on Windows
+
+1. Install [modlunky2](https://github.com/spelunky-fyi/modlunky2) and point it at your modding copy.
+   In its Overlunky tab, install Overlunky. Playlunky is installed by modlunky2.
+2. Find the Playlunky folder: in modlunky2, Settings → User Directories → Data, then
+   `playlunky/<version>` (e.g. `playlunky/nightly`). Set it once:
+
+   ```bash
+   setx SPELUNKY2RL_PLAYLUNKY_DIR "C:\Users\You\AppData\Local\spelunky.fyi\modlunky2\playlunky\nightly"
+   ```
+
+   ![modlunky2 configuration](modlunky2config.png)
+
+3. Install the package:
+
+   ```bash
+   git clone https://github.com/vicbentu/spelunky2RL.git
+   cd spelunky2RL
+   pip install .
+   ```
+
+On start, SpelunkyRL copies its mod into `Mods/Packs/spelunky2rl`, makes it the only mod in
+`load_order.txt`, and sets `overlunky.ini` to autorun it (`autorun_scripts`, `script_dir`,
+`enable_unsafe_scripts`).
 
 ## Your First Environment
 
@@ -72,11 +96,8 @@ Here's a minimal example to verify everything is working:
 ```python
 from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
-# Create the environment
-env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",  # Path to Spel2.exe
-    playlunky_dir=r"C:\Users\YourName\AppData\Local\spelunky.fyi\modlunky2\playlunky\nightly"
-)
+# Uses SPELUNKY2RL_GAME_DIR; or SpelunkyEnv(game_dir="/path/to/Spelunky 2")
+env = SpelunkyEnv()
 
 # Reset the environment
 obs, info = env.reset()
@@ -101,14 +122,16 @@ The `SpelunkyRLEngine` (base class for all environments) accepts several configu
 
 ```python
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",     # Required: Path to Spel2.exe
-    playlunky_dir=r"C:\Path\To\playlunky",     # Required: Path to playlunky_launcher.exe
-    frames_per_step=6,                          # Optional: Game frames per RL step (default: 6)
-    render_enabled=False,                       # Optional: Enable render() method (default: False)
-    console=False,                              # Optional: Show Spelunky console (default: False)
-    step_timeout=60.0,                          # Optional: Max seconds to wait for the game each step
-    startup_timeout=180.0,                      # Optional: Max seconds for the game to start and connect
-    max_launch_attempts=3,                      # Optional: Relaunches if Playlunky exits early
+    game_dir="/path/to/Spelunky 2",   # Optional: folder with Spel2.exe (default: $SPELUNKY2RL_GAME_DIR)
+    frames_per_step=6,                # Optional: Game frames per RL step (default: 6)
+    render_enabled=False,             # Optional: Enable render() method (default: False)
+    launcher="auto",                  # Optional: "docker" (Linux default), "wine", "windows" (Windows default)
+    renderer="auto",                  # Optional, Linux: "gpu", "cpu" or "auto" (GPU if Docker can use one)
+    launcher_options=None,            # Optional: e.g. {"image": "..."} for Docker
+    console=False,                    # Optional, Windows: Show Playlunky console (default: False)
+    step_timeout=60.0,                # Optional: Max seconds to wait for the game each step
+    startup_timeout=180.0,            # Optional: Max seconds for the game to start and connect
+    max_launch_attempts=3,            # Optional: Relaunches if the game dies before connecting
 )
 ```
 
@@ -122,8 +145,6 @@ You can configure game settings via `reset()` or by passing them to `__init__()`
 ```python
 # Option 1: Configure at initialization
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     hp=8,           # Start with 8 HP
     bombs=10,       # Start with 10 bombs
     world=2,        # Start in world 2
@@ -160,10 +181,6 @@ For training, you'll want to maximize speed:
 
 ```python
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
-
-    # Speed optimizations
     speedup=True,           # Run faster than real-time
     state_updates=200,      # Skip rendering frequently (test different values)
     render_enabled=False,   # Don't capture frames
@@ -181,8 +198,6 @@ To test your environment with keyboard controls:
 
 ```python
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     manual_control=True,    # Enable keyboard input
     god_mode=True,          # Useful for testing
     console=True,           # Show console for debugging
@@ -225,8 +240,6 @@ SpelunkyRL can log game state information for debugging:
 
 ```python
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     log_file="game_log.txt",        # Where to save logs
     log_info=["all", "map_info"],   # What to log
 )

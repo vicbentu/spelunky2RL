@@ -177,9 +177,7 @@ def make_env(index: int):
     """
     def _init():
         env = SpelunkyEnv(
-            # TODO: Update these paths to match your installation
-            spelunky_dir=r"C:\Path\To\Spelunky 2",
-            playlunky_dir=r"C:\Path\To\playlunky\nightly",
+            # The game folder comes from SPELUNKY2RL_GAME_DIR (or pass game_dir="...")
 
             # Performance settings
             frames_per_step=6,   # 6 frames between actions (~10 actions/sec)

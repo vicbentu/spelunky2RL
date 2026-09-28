@@ -24,10 +24,7 @@ The simplest environment - useful for testing and as a minimal starting point.
 ```python
 from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
-env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky"
-)
+env = SpelunkyEnv()  # game folder from SPELUNKY2RL_GAME_DIR, or game_dir="..."
 ```
 
 **Characteristics**:
@@ -63,8 +60,6 @@ Goal-reaching task where the agent navigates to the level exit as quickly as pos
 from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     speedup=True,
     state_updates=200,
 )
@@ -99,8 +94,6 @@ Resource collection task where the agent collects as much gold as possible.
 from spelunky2rl.envs.gold_grabber import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
@@ -136,8 +129,6 @@ Combat-focused task where the agent must kill as many enemies as possible.
 from spelunky2rl.envs.enemy_killer import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
@@ -172,8 +163,6 @@ class CustomEnv(SpelunkyEnv):
         return reward, False, False, info
 
 env = CustomEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
@@ -439,8 +428,6 @@ class GoldRushEnv(SpelunkyRLEngine):
 
 # Use it
 env = GoldRushEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     speedup=True,
 )
 ```

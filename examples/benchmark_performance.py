@@ -55,15 +55,13 @@ def import_env_class(env_name: str):
     return module.SpelunkyEnv
 
 
-def make_env(env_class, env_id: int, spelunky_dir: str, playlunky_dir: str,
-             stagger_delay: float = 2.0):
+def make_env(env_class, env_id: int, game_dir: str, stagger_delay: float = 2.0):
     """Factory function to create a monitored SpelunkyEnv instance.
 
     Args:
         env_class: The environment class to instantiate
         env_id: Environment identifier (used for staggered initialization)
-        spelunky_dir: Path to Spelunky 2 installation
-        playlunky_dir: Path to Playlunky installation
+        game_dir: Spelunky 2 folder (None: $SPELUNKY2RL_GAME_DIR)
         stagger_delay: Delay between environment starts (seconds)
 
     Returns:
@@ -81,8 +79,7 @@ def make_env(env_class, env_id: int, spelunky_dir: str, playlunky_dir: str,
             speedup=True,
             state_updates=150,
             render_enabled=False,
-            spelunky_dir=spelunky_dir,
-            playlunky_dir=playlunky_dir,
+            game_dir=game_dir,
             console=False,
             manual_control=False
         )
@@ -95,15 +92,13 @@ def make_env(env_class, env_id: int, spelunky_dir: str, playlunky_dir: str,
     return _init
 
 
-def test_single_env(env_class, duration: float, spelunky_dir: str,
-                   playlunky_dir: str) -> Tuple[int, float, float]:
+def test_single_env(env_class, duration: float, game_dir: str) -> Tuple[int, float, float]:
     """Benchmark a single environment.
 
     Args:
         env_class: The environment class to test
         duration: Test duration in seconds
-        spelunky_dir: Path to Spelunky 2 installation
-        playlunky_dir: Path to Playlunky installation
+        game_dir: Spelunky 2 folder (None: $SPELUNKY2RL_GAME_DIR)
 
     Returns:
         Tuple of (total_steps, elapsed_time, steps_per_second)
@@ -115,8 +110,7 @@ def test_single_env(env_class, duration: float, spelunky_dir: str,
         speedup=True,
         state_updates=150,
         render_enabled=False,
-        spelunky_dir=spelunky_dir,
-        playlunky_dir=playlunky_dir,
+        game_dir=game_dir,
         console=False,
         manual_control=False
     )
@@ -146,16 +140,14 @@ def test_single_env(env_class, duration: float, spelunky_dir: str,
 
 
 def test_parallel_envs(env_class, num_envs: int, duration: float,
-                      spelunky_dir: str, playlunky_dir: str,
-                      stagger_delay: float = 2.0) -> Tuple[int, float, float]:
+                      game_dir: str, stagger_delay: float = 2.0) -> Tuple[int, float, float]:
     """Benchmark parallel environments using SubprocVecEnv.
 
     Args:
         env_class: The environment class to test
         num_envs: Number of parallel environments
         duration: Test duration in seconds
-        spelunky_dir: Path to Spelunky 2 installation
-        playlunky_dir: Path to Playlunky installation
+        game_dir: Spelunky 2 folder (None: $SPELUNKY2RL_GAME_DIR)
         stagger_delay: Delay between environment starts (seconds)
 
     Returns:
@@ -167,7 +159,7 @@ def test_parallel_envs(env_class, num_envs: int, duration: float,
     try:
         # Create parallel environments
         env = SubprocVecEnv([
-            make_env(env_class, i, spelunky_dir, playlunky_dir, stagger_delay)
+            make_env(env_class, i, game_dir, stagger_delay)
             for i in range(num_envs)
         ])
 
@@ -241,16 +233,10 @@ Examples:
         help="Delay between parallel environment starts in seconds (default: 2.0)"
     )
     parser.add_argument(
-        "--spelunky-dir",
+        "--game-dir",
         type=str,
         default=None,
-        help="Path to Spelunky 2 installation"
-    )
-    parser.add_argument(
-        "--playlunky-dir",
-        type=str,
-        default=None,
-        help="Path to Playlunky installation"
+        help="Spelunky 2 folder (default: $SPELUNKY2RL_GAME_DIR)"
     )
 
     args = parser.parse_args()
@@ -277,7 +263,7 @@ Examples:
         if num_envs == 1:
             # Single environment
             steps, elapsed, sps = test_single_env(
-                env_class, args.duration, args.spelunky_dir, args.playlunky_dir
+                env_class, args.duration, args.game_dir
             )
             config_name = "Single"
             baseline_sps = sps  # Set baseline for speedup calculation
@@ -285,7 +271,7 @@ Examples:
             # Parallel environments
             steps, elapsed, sps = test_parallel_envs(
                 env_class, num_envs, args.duration,
-                args.spelunky_dir, args.playlunky_dir, args.stagger_delay
+                args.game_dir, args.stagger_delay
             )
             config_name = f"{num_envs} Parallel"
 
