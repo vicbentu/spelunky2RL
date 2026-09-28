@@ -430,17 +430,25 @@ Nota: las plantillas `overlunky.ini`/`playlunky.ini` viven en el paquete
 (`src/spelunky2rl/engine/launchers/config/`) y no en `docker/config/`, porque también las usan
 `WineLauncher` y `WindowsLauncher`; el Dockerfile las copia desde ahí.
 
-### Fase 4. Headless fino y paralelismo
+### Fase 4. Headless fino y paralelismo — HECHA salvo `record_video.py`
 
-- [ ] `main.lua`: opciones headless en `reset` (decisión 14).
-- [ ] Arreglar la reentrada de `update_state()` con bandera; documentar la semántica de
-      `state_updates` ("N frames lógicos por frame renderizado").
-- [ ] Retrasar o desactivar el fantasma si hace falta (a partir de 3 min de juego cae a ~250 pasos/s).
-- [ ] Reducir la espera fija de 60 frames tras cada reset (pesa en episodios cortos).
-- [ ] Medir escalado con 1, 4, 8 y 16 contenedores: pasos/s, CPU y RAM por instancia.
-- [ ] `render()` y `record_video.py` funcionando con `X11FrameSource` dentro del contenedor.
-- [ ] Documentar en `docs/getting-started.md` los caminos Docker (Linux) y nativo (Windows).
-      Aviso legal: el usuario aporta su copia; la imagen no incluye el juego.
+- [x] `main.lua`: opciones headless en `reset`: sin dibujar nivel ni HUD si `render_enabled=False`
+      (+18 % a `state_updates=0`), VSync y audio desactivados. `set_frametime(0)` no mejora sobre el
+      speedhack (medido), así que no se usa.
+- [x] Reentrada de `update_state()` arreglada con bandera; `state_updates=1000` ya no rompe.
+      Semántica documentada: N frames lógicos extra por frame renderizado.
+- [x] Fantasma: opción `time_ghost`. Medido: sin ella, a los 300 s de juego cae de ~1.800 a ~200 pasos/s.
+- [x] Espera de 60 frames tras el reset: medido, **no** es el coste (el reset cuesta ~45 ms de generar el
+      nivel; con 5 frames tarda igual). Saltarse `play_adventure` ahorra solo 5 ms. Se deja como estaba.
+- [x] Escalado medido (docs/getting-started.md): GPU 1/4/8/16 contenedores = 1,7k/5,7k/10,4k/14,3k
+      pasos/s, ~1 GiB por contenedor; CPU 16 = 12,1k, ~2,8 GiB. `AsyncVectorEnv` síncrono se queda en ~3k
+      con 16: el cuello de botella pasa a Python (Fase 6 y entrenamiento asíncrono).
+- [x] `render()` con `X11FrameSource`: requería un `local.cfg` propio en ventana (a pantalla completa
+      la superficie Vulkan queda en 1x1 y todo sale negro). La barra de Overlunky sigue visible
+      (ver `BACKLOG.md`).
+- [ ] `record_video.py` de punta a punta: necesita un modelo entrenado (Fase 5).
+- [x] `docs/getting-started.md` con los caminos Docker (Linux), Wine y nativo (Windows), y el aviso de
+      que el usuario aporta su copia del juego.
 
 ### Fase 5. Retomar el entrenamiento
 

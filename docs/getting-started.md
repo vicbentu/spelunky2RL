@@ -198,6 +198,22 @@ the game is no longer the bottleneck (about 1,700 steps/s per instance with `fra
 measured on a Ryzen 9 7900X); the rest is the per-step exchange with Python. Do not use
 `state_updates` when `render_enabled=True`: the frames you capture would skip most of the action.
 
+### Many environments
+
+Each environment is its own game (one container on Linux), so run several in parallel. Measured on a
+Ryzen 9 7900X (24 threads) with `get_to_exit`, `state_updates=200`, one Python process per env:
+
+| Containers | GPU renderer | CPU renderer (lavapipe) |
+|---|---|---|
+| 1 | 1,700 steps/s | 1,700 steps/s |
+| 8 | 10,400 steps/s total | 8,900 steps/s total |
+| 16 | 14,300 steps/s total | 12,100 steps/s total |
+| RAM per container | ~1 GiB | ~2.8 GiB |
+
+Each instance keeps about one core busy, and so does its Python process. Synchronous vector envs
+(Gymnasium's `AsyncVectorEnv`, SB3's `SubprocVecEnv`) wait for the slowest env every step; with them
+16 envs gave ~3,000 steps/s in total. Asynchronous collection (one process per env) scales better.
+
 ## Manual Control (Testing)
 
 To test your environment with keyboard controls:
