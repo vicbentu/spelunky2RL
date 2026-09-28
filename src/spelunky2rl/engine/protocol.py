@@ -27,6 +27,9 @@ class Connection:
         self.timeout = timeout
         self._buffer = b""
         sock.settimeout(timeout)
+        if sock.family in (socket.AF_INET, socket.AF_INET6):
+            # one small message each way per step: never wait to batch
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     def send(self, payload: Dict[str, Any]) -> None:
         self.sock.sendall((json.dumps(payload) + "\n").encode("utf-8"))

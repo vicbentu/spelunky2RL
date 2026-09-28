@@ -15,6 +15,7 @@ local success, err = client:connect("127.0.0.1", port)
 if not success then
     error("Failed to connect: " .. tostring(err))
 end
+client:setoption("tcp-nodelay", true)  -- one small message each way per step: never wait to batch
 client:send(json.encode({hello = {protocol = PROTOCOL_VERSION, mod = MOD_VERSION}}) .. "\n")
 
 

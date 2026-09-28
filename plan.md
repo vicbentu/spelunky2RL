@@ -459,20 +459,25 @@ Nota: las plantillas `overlunky.ini`/`playlunky.ini` viven en el paquete
 ### Fase 6. Comunicación Python-Lua más eficiente (después de tener todo funcionando)
 
 Estado actual: TCP a `127.0.0.1`, una línea JSON por mensaje, un viaje de ida y vuelta por paso.
-En Linux no es cuello de botella (~1.500 pasos/s, menos de 1 ms por paso), pero en Windows lo fue
-y con render lo será. De menos a más trabajo:
 
-- [ ] **Medir primero** cuánto del tiempo por paso es socket + JSON frente a simulación, en Linux y en Windows.
-- [ ] `TCP_NODELAY` en ambos lados (Nagle + ACK retardado puede meter ~40 ms en Windows) y lectura
-      por líneas con buffer en Python (`makefile().readline()`) en vez del bucle `recv(1024)` que concatena.
-- [ ] Formato binario en vez de JSON: `map_info` y `entity_info` empaquetados con `string.pack` en Lua
-      y `numpy.frombuffer` en Python. Mantener JSON para mensajes de control.
-- [ ] Render sin píxeles por el socket: el frame va a memoria compartida (`/dev/shm` montado entre
-      contenedor y host) y Python lo lee como array de numpy sin copias; el socket solo lleva un número
-      de secuencia para garantizar que frame y estado corresponden al mismo paso.
-- [ ] Opción más precisa para render: capturar el frame dentro del juego enganchando la presentación
-      (`IDXGISwapChain::Present`) desde una DLL inyectada y escribirlo directamente en la memoria compartida.
-      Evita Xvfb como intermediario y la desincronización. Bastante más trabajo.
+- [x] **Medir primero** (Linux, `state_updates=200`, 1 instancia, con otro proceso cargando la máquina):
+      - El ~92 % del tiempo de un paso es esperar al juego; Python (JSON + observación) es < 10 %
+        (`get_to_exit`: 14 µs de `json.loads` y 63 µs del resto de Python sobre 940 µs).
+      - Dentro del juego: ~200-250 µs fijos por intercambio (sockets de Wine + JSON en Lua) y
+        ~80-100 µs por frame lógico simulado. Con `frames_per_step=6`, ~40 % fijo y ~60 % simulación.
+      - Coste de los datos en Lua: `map_info` +150 µs/paso, `entity_info` +110 µs, `dist_to_goal` ~0.
+      - En Windows no se ha podido medir.
+- [x] `TCP_NODELAY` en ambos lados: sin cambio medible en Linux; se deja por Windows (Nagle + ACK
+      retardado). La lectura ya es con buffer (`engine/protocol.py`, `recv(65536)`).
+- [ ] Formato binario (`string.pack` / `numpy.frombuffer`): techo de ganancia estimado 15-25 % en
+      entornos con `map_info`, porque el coste está sobre todo en construir los datos en Lua y en la
+      simulación, no en Python. No hecho: no compensa todavía.
+- [ ] Render por memoria compartida con número de secuencia: solo si se quieren píxeles como
+      observación. Hoy `render()` lee el Xvfb con mss (sirve para vídeo).
+- [ ] Captura dentro del juego enganchando `IDXGISwapChain::Present`: igual que el anterior.
+
+El cuello de botella al escalar está en el paso síncrono de los vector envs (Fase 4): entrenar con
+recogida asíncrona (un proceso por entorno) rinde más que cualquier mejora del protocolo.
 
 ---
 
