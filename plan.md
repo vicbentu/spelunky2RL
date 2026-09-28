@@ -450,11 +450,15 @@ Nota: las plantillas `overlunky.ini`/`playlunky.ini` viven en el paquete
 - [x] `docs/getting-started.md` con los caminos Docker (Linux), Wine y nativo (Windows), y el aviso de
       que el usuario aporta su copia del juego.
 
-### Fase 5. Retomar el entrenamiento
+### Fase 5. Retomar el entrenamiento — EN CURSO
 
-- [ ] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed reproducible).
-- [ ] Comparar con los modelos de mayo de 2025.
-- [ ] `gymnasium.register` para los entornos y `device="auto"`.
+- [ ] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed reproducible):
+      en marcha en `~/spelunkyrl-test/train_2026-09-28/` (3,7 M pasos, 6 contenedores, RecurrentPPO en GPU).
+      El ejemplo de entrenamiento no funcionaba con SB3 2.x (el extractor volvía a codificar en one-hot
+      lo que SB3 ya codifica); arreglado.
+- [ ] Comparar con los modelos de mayo de 2025: **no están en esta máquina** (ni en el repo ni en `~`).
+      Hace falta copiarlos desde el PC de Windows.
+- [x] `gymnasium.register` para los entornos (`spelunky2rl/GetToExit-v0`, ...) y `device="auto"`.
 
 ### Fase 6. Comunicación Python-Lua más eficiente (después de tener todo funcionando)
 
