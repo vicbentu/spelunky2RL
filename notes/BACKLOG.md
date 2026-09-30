@@ -39,6 +39,18 @@ Se borran al hacerlas o descartarlas (git es el archivo). Si se decide hacer una
   bucle propio de `update_state()` mientras Python manda pasos, sin volver al motor, o quitar el
   speedhack si `state_updates` ya lo cubre). Si `state_updates` alto es siempre mejor, quizá no debería
   ser un parámetro del usuario.
+- [2026-10-01 00:55] @7ce4428 Estandarizar el contrato de datos Python ↔ Lua (opciones y observación).
+  Después de [plans/lua-modules.md](plans/lua-modules.md), que no permite cambiar comportamiento; es
+  un cambio de protocolo (subir `PROTOCOL_VERSION`). Hoy: las opciones de `reset` son una lista fija
+  en `_game_reset` (`engine/core.py`) y los `**kwargs` desconocidos se ignoran sin avisar;
+  `data_to_send` es una lista de strings sin validar (`map_info`, `entity_info`, `dist_to_goal`, y
+  `custom_info`, que siempre manda `""`); `step` lo lee con `getattr(self, "data_to_send", [])` y
+  `reset` con `self.data_to_send`; `basic_info` va entero en cada paso aunque el entorno no lo use;
+  formatos fijos (`map_info` 11x21, `entity_info` de 7 campos) sin parámetros ni descripción
+  formal. Ideas: esquema único de opciones y campos (con valores por defecto y validación en Python),
+  pedir solo los campos que usa la observación, tamaños configurables, documentar el formato. Medir
+  antes: coste por campo en Lua (`map_info` +150 µs/paso, `entity_info` +110 µs, `dist_to_goal` ~0)
+  y en `json.encode`. Relacionado: protocolo binario en `Later` de `PLAN.md`.
 
 ## Ideas
 
