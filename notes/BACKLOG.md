@@ -30,6 +30,15 @@ Se borran al hacerlas o descartarlas (git es el archivo). Si se decide hacer una
   `RESOLUTION` al contenedor → el entrypoint arranca Xvfb a ese tamaño y escribe `local.cfg` a juego.
   Sin probar: que `window_scale=100` llene pantallas mayores (sí lo hace a 640x360) y el coste de
   render (GPU poco; con `renderer="cpu"` crece con los píxeles). Solo afecta con `render_enabled`.
+- [2026-10-01 00:53] @4cdc78a Revisar el mecanismo de velocidad (`speedup` + `state_updates`), hecho a
+  mano en su día. Hoy: `set_speedhack(100)` y, en cada `POST_UPDATE` del motor, `update_state()`
+  `state_updates` veces (`main.lua`, final del callback; solo con `speedup=True`). La idea es amortizar
+  el coste fijo de cada frame del motor (`Present` de DXVK, UI de Overlunky, bucle de Wine), que
+  `render=False` no quita: solo evita dibujar nivel y HUD (+18 % a `state_updates=0`). Sin medir:
+  pasos/s con `render=False` y `state_updates` = 0/10/50/200, ni si hay una vía mejor (p. ej. un
+  bucle propio de `update_state()` mientras Python manda pasos, sin volver al motor, o quitar el
+  speedhack si `state_updates` ya lo cubre). Si `state_updates` alto es siempre mejor, quizá no debería
+  ser un parámetro del usuario.
 
 ## Ideas
 
