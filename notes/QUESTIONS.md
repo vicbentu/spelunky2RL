@@ -3,7 +3,7 @@
 Formato: `## N. [ts] DECIDED|OPEN título`. DECIDED: una decisión que tomé y apliqué; se mantiene salvo
 que digas otra cosa, y la entrada da el cambio que la deshace. OPEN: no la decidí; el trabajo que depende
 de ella está aparcado y el resto sigue. **Nada de lo que hay aquí bloquea el trabajo.** Al responder, la
-entrada pasa a `DECISIONS.md`.
+entrada se borra y el porqué va en un párrafo `Decided:` del commit que la aplica.
 
 ## 1. [2026-09-28 12:55] DECIDED Sin campo `license` en `pyproject.toml`
 

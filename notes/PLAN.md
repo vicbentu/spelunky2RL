@@ -14,6 +14,6 @@ hechas, está en `git show 222ac52:plan.md`.
 - Publicar la imagen del juego (tag `v<versión>` → `.github/workflows/docker.yml`); pendiente de push, ver `QUESTIONS.md` #2
 
 ## Later
-- Protocolo binario (`string.pack` / `numpy.frombuffer`): techo estimado 15-25 % en entornos con `map_info`; hoy no compensa (ver `DECISIONS.md`, 2026-09-28 14:02)
+- Protocolo binario (`string.pack` / `numpy.frombuffer`): techo estimado 15-25 % en entornos con `map_info`; hoy no compensa: ~92 % del paso es esperar al juego (medido en 7dc9904)
 - Render por memoria compartida con número de secuencia, solo si se quieren píxeles como observación (hoy `render()` lee el Xvfb con mss)
 - Captura dentro del juego enganchando `IDXGISwapChain::Present`, mismo caso que el anterior; también quitaría la barra de Overlunky de los frames (ver `BACKLOG.md`)
