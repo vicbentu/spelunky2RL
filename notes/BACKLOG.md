@@ -36,3 +36,11 @@ Se borran al hacerlas o descartarlas (git es el archivo). Si se decide hacer una
 - [2026-09-28 12:53] Comprobar la versión de `Spel2.exe` al arrancar y fallar con un mensaje claro si no
   es la que soportan las versiones fijadas de Playlunky/Overlunky (hoy una actualización del juego rompe
   los offsets y el síntoma es que el mod no carga). Venía de la tabla de riesgos del plan de retoma.
+- [2026-09-30 22:59] Ruta del juego permanente y configurable desde el CLI. Hoy solo existe `game_dir=`
+  o `SPELUNKY2RL_GAME_DIR` (resuelto en `make_launcher`, `engine/launchers/__init__.py`); no hay fichero
+  de configuración y el `export` se pierde al cerrar la terminal (`docs/getting-started.md` dice "once",
+  lo que es engañoso). Propuesta: `spelunky2rl config set game-dir <ruta>` (valida `Spel2.exe` como
+  `doctor`) que escribe `~/.config/spelunky2rl/config.toml` (`XDG_CONFIG_HOME`), `config get/show`, y
+  `make_launcher`/`doctor` lo leen como último recurso: `game_dir=` > variable de entorno > fichero.
+  Podría cubrir también `launcher`, `image` y `renderer`. Actualizar la guía y `doctor` (que diga de
+  dónde sale cada valor).
