@@ -30,19 +30,13 @@ local data = {
     frames = 0,
     command = "pass"
 }
-local tiles = nil
 local agent_input = nil  -- INPUTS applied every frame until the next step; nil = leave input alone
 
-local x, y, vel_x, vel_y, health, money, bombs, ropes, layer, map_info, face_left_player, holding_type_player, back_item, dist_to_goal, pos_type_matrix, char_state, can_jump = 
-      0, 0, 0,     0,     0,      0,     0,     0,     0,     0,        0,                 0,                  0,         0,            0,               0,          false
+local x, y, vel_x, vel_y, health, money, bombs, ropes, layer, face_left_player, holding_type_player, back_item, char_state, can_jump =
+      0, 0, 0,     0,     0,      0,     0,     0,     0,     0,                0,                   0,         0,          false
 local powerups = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} -- 18 powerups, 0 = not, 1 = yes
 
 ---------------- PATHFINDING ----------------
-local Grid        = require ("jumper.grid")
-local Pathfinder  = require ("jumper.pathfinder")
-
-local pf_grid       = nil        -- jumper grid
-local pf_finder     = nil        -- jumper finder
 local pf_board      = {}         -- 0 = walkable, 1 = blocked
 local pf_ntiles     = 0          -- rebuild only if the number of floor tiles changes
 local pf_xmin, pf_ymin, pf_xmax, pf_ymax = 0,0,0,0
@@ -62,11 +56,11 @@ local function safe(val, default)
     end
 end
 
-function math.round(x)
+local function round(x)
     return math.floor(x + 0.5)
 end
 
-function destroy_entities(entity_types)
+local function destroy_entities(entity_types)
     if #entity_types == 0 then
         return
     end
@@ -164,8 +158,6 @@ local function pf_refresh()
         pf_goaly = math.floor(ymin - gy  + 1)
     end
 
-    pf_grid   = Grid(pf_board)
-    pf_finder = Pathfinder(pf_grid, "ASTAR", 0)
     pf_build_distance_field()
 end
 
@@ -258,7 +250,7 @@ end
 
 --------------- INFO RETRIEVAL ----------------
 
-function count_dead_enemies()
+local function count_dead_enemies()
     local all_monsters = get_entities_by(0, MASK.MONSTER, LAYER.FRONT)
     local dead_count = 0
 
@@ -272,12 +264,12 @@ function count_dead_enemies()
     return dead_count
 end
 
-function get_entities_info(x, y, layer)
+local function get_entities_info(x, y, layer)
     local mask = 0xFFFFFFFF & ~(MASK.DECORATION | MASK.BG | MASK.SHADOW | MASK.FLOOR | MASK.LIQUID | MASK.FX)
     local entities = get_entities_overlapping_hitbox(
         0, -- all types of entity
         mask,
-        AABB:new(math.round(x-10), math.round(y+5), math.round(x+10), math.round(y-5)),
+        AABB:new(round(x-10), round(y+5), round(x+10), round(y-5)),
         layer
     )
     local info = {}
@@ -287,21 +279,11 @@ function get_entities_info(x, y, layer)
         local dx, dy = ex - x, ey - y
         local vx, vy = get_velocity(uid)
         local face_left = (entity.flags & (1 << 16)) ~= 0
-        
+
         local holding_type = 0
         if entity.holding_uid ~= -1 and entity.holding_uid ~=0 and entity.holding_uid ~= nil then
             holding_type = get_entity_type(entity.holding_uid)
         end
-        -- local back_type = 0
-        -- if worn_backitem(uid) ~= -1 then
-        -- if entity:worn_backitem() ~= -1 then
-            -- local back_entity = get_entity(worn_backitem(uid))
-            -- if back_entity then
-            --     back_type = get_entity_type(back_entity)
-            -- end
-        -- end
-
-        local type = entity.type.search_flags
 
         table.insert(info,{
             safe(dx, 0), safe(dy, 0),
@@ -320,8 +302,8 @@ local function get_map_info(x, y, layer)
         pf_refresh()
     end
 
-    local sx, ex = math.round(x - 10), math.round(x + 10)
-    local sy, ey = math.round(y - 5),  math.round(y + 5)
+    local sx, ex = round(x - 10), round(x + 10)
+    local sy, ey = round(y - 5),  round(y + 5)
 
     local maptiles = {}
     for ty = ey, sy, -1 do
@@ -428,15 +410,9 @@ set_callback(function()
     data["frames"] = data["frames"] - 1
     if data["frames"] <= 0 then
 
-        local start = get_performance_counter()
         -- SEND
         if data["command"] == "step" then
             local serialized_data = json.encode(get_info(data["data_to_send"]))
-            local finish = get_performance_counter()
-            local freq = get_performance_frequency()
-            local elapsed_time = (finish - start) / freq
-            -- print(string.format("Get info: %.6f seconds", elapsed_time))
-            start = get_performance_counter()
             client:send(serialized_data .. "\n")
 
         elseif data["command"] == "reset" then
@@ -455,11 +431,6 @@ set_callback(function()
             os.exit()
         end
         data = json.decode(line)
-        local finish = get_performance_counter()
-        local freq = get_performance_frequency()
-        local elapsed_time = (finish - start) / freq
-        -- print(string.format("Elapsed time: %.6f seconds", elapsed_time))
-
 
         if data["command"] == "reset" then
             release_input()

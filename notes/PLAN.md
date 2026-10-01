@@ -179,7 +179,7 @@ y dos veces `… golden.py compare` → `OK: 24 episodes, 4853 messages, all ide
 La traza se grabó con el `main.lua` de d1b3d70; para regrabarla, `git worktree add <dir> d1b3d70` y
 `golden.py record --mod <dir>/src/spelunky2rl/mod/lua`.
 
-### Fase 1 — Limpieza sin mover nada  ·  status: pending
+### Fase 1 — Limpieza sin mover nada  ·  status: done [2026-10-01 21:55]
 
 Quitar jumper y `pf_grid`/`pf_finder`, variables sin uso, medidas de tiempo y comentarios muertos;
 convertir las globales accidentales en locales.

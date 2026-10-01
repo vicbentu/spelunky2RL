@@ -14,8 +14,8 @@ aplica. `@sha` es el commit en que estaba el código al escribir la entrada.
 
 No he puesto licencia: el repo no tiene fichero LICENSE y elegirla es cosa tuya.
 
-Coste: PyPI y los usuarios no saben bajo qué términos pueden usar el código. `jumper/` y `luasocket/`
-traen sus propias licencias (MIT) y `entities-hierarchy.md` viene de overlunky (MIT).
+Coste: PyPI y los usuarios no saben bajo qué términos pueden usar el código. `luasocket/` trae su
+propia licencia (MIT) y `entities-hierarchy.md` viene de overlunky (MIT).
 
 Para cambiarlo: añadir `LICENSE` y `license = "MIT"` (o la que elijas) en `[project]`.
 

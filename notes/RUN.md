@@ -20,3 +20,9 @@
   falla en los 24. `require("spelunky2rl.probe")` carga en el juego (lo resuelve el `require` de
   Overlunky, relativo al script; la línea `package.path` no hace falta para eso). La traza queda en
   `tests/integration/data/` sin versionar → Q6.
+- [2026-10-01 21:55] Fase 1 hecha: fuera `jumper/` (12 ficheros) y `pf_grid`/`pf_finder`, las variables sin uso
+  (`tiles`, `map_info`, `dist_to_goal`, `pos_type_matrix`), las medidas con `get_performance_counter` y
+  el bloque comentado de `back_type`; `destroy_entities`, `count_dead_enemies`, `get_entities_info` y
+  `math.round` (ahora `round`) pasan a locales. Nada se mueve de sitio todavía, para que el diff se lea
+  solo como borrado. Verificado: `luac -p`, y `golden.py compare` → `OK: 24 episodes, 4853 messages, all
+  identical`.
