@@ -1,10 +1,22 @@
 # Backlog
 
-Cosas encontradas fuera del alcance de la tarea en curso: `- [ts @sha] contexto suficiente para retomarlo
-en frío`. El sha es el commit en que estaba el código al verlo (`git show <sha>:<ruta>`). Secciones según
-cuánto se sabe: Bugs (algo está mal), Improvements (se sabe exactamente qué hacer, solo falta el cuándo),
-Ideas (vale la pena mirarlo; aún no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el
-archivo). Si se decide hacer una, pasa a `PLAN.md`.
+Todo lo no empezado: `- [ts @sha] contexto suficiente para retomarlo en frío`. El sha es el commit en que
+estaba el código al escribirlo (`git show <sha>:<ruta>`). *Next* es lo elegido, en orden; lo primero es lo
+que pasa a `PLAN.md` cuando acabe el objetivo en marcha. Después, según cuánto se sabe: Bugs (algo está
+mal), Improvements (se sabe exactamente qué hacer, solo falta el cuándo), Ideas (vale la pena mirarlo; aún
+no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo).
+
+## Next
+
+- [2026-09-28 12:53 @f5809d2] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed
+  reproducible, entrada en `PRE_UPDATE`); el primer intento (`~/spelunkyrl-test/train_2026-09-28/`, 0 % de
+  éxito a 2,6 M pasos, 333 pasos/s) se hizo antes de arreglar la entrada.
+- [2026-09-28 12:53 @f5809d2] Comparar con los modelos de mayo de 2025: no están en esta máquina, hay que
+  copiarlos desde el PC de Windows.
+- [2026-09-28 13:53 @ce9dcf6] `examples/record_video.py` de punta a punta con un modelo entrenado (último
+  pendiente de headless/render).
+- [2026-09-30 00:20 @222ac52] Publicar la imagen del juego (tag `v<versión>` →
+  `.github/workflows/docker.yml`); pendiente de push, ver `QUESTIONS.md` #2.
 
 ## Bugs
 
@@ -15,10 +27,10 @@ archivo). Si se decide hacer una, pasa a `PLAN.md`.
   `Pos=-5000,-5000` y `Collapsed=1` hace que el juego caiga con un page fault. `hide_ui` solo se cambia
   con la tecla (`src/injected/ui.cpp` de overlunky). Vías sin probar: recortar las filas superiores en
   `X11FrameSource`, pedir upstream una opción de ini, o capturar dentro del juego (Fase 6 del plan
-  antiguo, ver `Later` en `PLAN.md`).
+  antiguo, ver Ideas).
 - [2026-09-30 00:17 @222ac52] `main.lua`: `last_distance` no se reinicia en `reset`, así que el primer
   `dist_to_goal` de un episodio puede ser el último del anterior si la celda inicial no está en el campo
-  de distancias. No se toca durante [plans/lua-modules.md](plans/lua-modules.md) para que la traza de
+  de distancias. No se toca durante la reorganización del Lua (`PLAN.md`) para que la traza de
   referencia siga valiendo.
 - [2026-09-30 00:17 @222ac52] `main.lua`: `count_dead_enemies` solo mira la capa frontal (enemigos
   muertos en la capa trasera no cuentan). Mismo motivo para no tocarlo durante la reorganización del Lua.
@@ -69,7 +81,7 @@ archivo). Si se decide hacer una, pasa a `PLAN.md`.
   speedhack si `state_updates` ya lo cubre). Si `state_updates` alto es siempre mejor, quizá no debería
   ser un parámetro del usuario.
 - [2026-10-01 00:55 @7ce4428] Estandarizar el contrato de datos Python ↔ Lua (opciones y observación).
-  Después de [plans/lua-modules.md](plans/lua-modules.md), que no permite cambiar comportamiento; es
+  Después de la reorganización del Lua (`PLAN.md`), que no permite cambiar comportamiento; es
   un cambio de protocolo (subir `PROTOCOL_VERSION`). Hoy: las opciones de `reset` son una lista fija
   en `_game_reset` (`engine/core.py`; los nombres desconocidos, ver Bugs); `data_to_send` es una lista
   de strings sin validar (`map_info`, `entity_info`, `dist_to_goal`, y `custom_info`, que siempre manda
@@ -79,4 +91,11 @@ archivo). Si se decide hacer una, pasa a `PLAN.md`.
   campos (con valores por defecto y validación en Python), pedir solo los campos que usa la
   observación, tamaños configurables, documentar el formato. Medir antes: coste por campo en Lua
   (`map_info` +150 µs/paso, `entity_info` +110 µs, `dist_to_goal` ~0) y en `json.encode`.
-  Relacionado: protocolo binario en `Later` de `PLAN.md`.
+  Relacionado: el protocolo binario, más abajo.
+- [2026-09-30 00:20 @222ac52] Protocolo binario (`string.pack` / `numpy.frombuffer`): techo estimado
+  15-25 % en entornos con `map_info`; hoy no compensa: ~92 % del paso es esperar al juego (medido en
+  7dc9904). Mirar de nuevo si el mecanismo de velocidad (arriba) cambia ese reparto.
+- [2026-09-28 14:02 @996066a] Render por memoria compartida con número de secuencia, solo si se quieren
+  píxeles como observación (hoy `render()` lee el Xvfb con mss).
+- [2026-09-28 14:02 @996066a] Captura dentro del juego enganchando `IDXGISwapChain::Present`, mismo caso
+  que el anterior; también quitaría la barra de Overlunky de los frames (ver Bugs).

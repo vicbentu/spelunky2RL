@@ -1,11 +1,16 @@
-# Preguntas — lo que espera tu respuesta
+# Preguntas — para ti
 
-Formato: `## N. [ts] DECIDED|OPEN título`. DECIDED: una decisión que tomé y apliqué; se mantiene salvo
-que digas otra cosa, y la entrada da el cambio que la deshace. OPEN: no la decidí; el trabajo que depende
-de ella está aparcado y el resto sigue. **Nada de lo que hay aquí bloquea el trabajo.** Al responder, la
-entrada se borra y el porqué va en un párrafo `Decided:` del commit que la aplica.
+Nada de lo que hay aquí bloquea el trabajo. *Para responder*: no lo decidí; lo que depende de ello está
+aparcado y el resto sigue. *Decidido sin ti*: lo elegí y lo apliqué; se mantiene salvo que digas otra
+cosa, y cada entrada da cómo deshacerlo. Respondes en el chat o con una línea `**Answer:** …` bajo la
+entrada; las respondidas se aplican y se borran, el porqué va en un párrafo `Decided:` del commit que las
+aplica. `@sha` es el commit en que estaba el código al escribir la entrada.
 
-## 1. [2026-09-28 12:55] DECIDED Sin campo `license` en `pyproject.toml`
+## Para responder
+
+## Decidido sin ti
+
+### 1. [2026-09-28 12:55 @4a53a57] Sin campo `license` en `pyproject.toml`
 
 No he puesto licencia: el repo no tiene fichero LICENSE y elegirla es cosa tuya.
 
@@ -14,7 +19,7 @@ traen sus propias licencias (MIT) y `entities-hierarchy.md` viene de overlunky (
 
 Para cambiarlo: añadir `LICENSE` y `license = "MIT"` (o la que elijas) en `[project]`.
 
-## 2. [2026-09-28 13:18] DECIDED La imagen del juego no está publicada
+### 2. [2026-09-28 13:18 @4a2a9cf] La imagen del juego no está publicada
 
 El nombre por defecto es `ghcr.io/vicbentu/spelunky2rl-game:<versión>` y `.github/workflows/docker.yml`
 la publica al crear un tag `v<versión>`. No he hecho push ni creado tags (es una acción externa).
@@ -27,7 +32,7 @@ en GHCR hay que marcar el paquete como público en la configuración del paquete
 Para cambiarlo: otro registro (Docker Hub) = cambiar `DEFAULT_IMAGE` en `engine/launchers/docker.py` y
 el login del workflow.
 
-## 3. [2026-09-28 13:18] DECIDED Overlunky: build "whip" fijada por hash, no por versión
+### 3. [2026-09-28 13:18 @4a2a9cf] Overlunky: build "whip" fijada por hash, no por versión
 
 Overlunky solo publica una build continua (`whip`) que se reemplaza en el mismo URL.
 `docker/versions.env` fija su sha256 (build del 2026-09-16). Cuando upstream la cambie, el build de la
@@ -38,7 +43,7 @@ no se ven afectadas.
 
 Para cambiarlo: alojar una copia del zip (release propia en este repo) y apuntar `OVERLUNKY_URL` ahí.
 
-## 5. [2026-09-28 13:18] DECIDED El modo `wine` copia el prefijo por instancia (~1,2 GB cada uno)
+### 5. [2026-09-28 13:18 @4a2a9cf] El modo `wine` copia el prefijo por instancia (~1,2 GB cada uno)
 
 `WineLauncher` reserva "slots" con un bloqueo y copia el prefijo base la primera vez
 (`cp --reflink=auto`, gratis en btrfs/xfs). Con un prefijo compartido, 1 de 4 instancias fallaba.
