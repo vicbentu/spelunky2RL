@@ -167,6 +167,10 @@ convertir las globales accidentales en locales.
 
 ### Fase 2 — `util.lua` y `pathfinding.lua`  ·  status: pending
 
+[2026-10-01 20:59] Al mover el estado `pf_*`, renombrar los límites verticales: hoy `pf_ymin` guarda la
+`y` más alta del nivel (fila 1 del tablero) y `pf_ymax` la más baja. Pasan a `top` y `bottom`; solo
+cambian los nombres, no los valores ni las fórmulas.
+
 ### Fase 3 — `observations.lua` (con los últimos valores del jugador dentro)  ·  status: pending
 
 ### Fase 4 — `control.lua` e `input.lua`  ·  status: pending
@@ -174,6 +178,11 @@ convertir las globales accidentales en locales.
 ### Fase 5 — `protocol.lua` y `session.lua`  ·  status: pending
 
 `main.lua` queda solo con el registro de callbacks.
+
+[2026-10-01 20:59] En `session.lua`, separar las dos cosas que hoy hace la tabla `data`: el último
+mensaje recibido (`command`, de solo lectura) y el contador de frames (`frames_left`, un local que se
+carga con `command.frames`, o 60 en `reset`, y se decrementa en cada `POST_UPDATE`). Valores iniciales
+iguales a los de hoy: contador 0 y comando `"pass"`.
 
 ### Fase 6 — Imagen, tests, benchmark y docs  ·  status: pending
 
