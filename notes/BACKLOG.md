@@ -39,6 +39,24 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   `env.reset(...)` no da error y el episodio arranca con los valores por defecto. Arreglo: quitar
   `**kwargs` o lanzar `TypeError` con los nombres sobrantes. Independiente del rediseño del contrato
   (ver Ideas).
+- [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: sale sin reconstruir si el número de bloques de
+  suelo no cambió (`if #tiles == pf_ntiles then return end`). Tras un `reset` o una transición a un nivel
+  distinto con el mismo número de bloques, `pf_tile_lookup`, `pf_board`, `pf_dist` y la celda de salida
+  quedan del nivel anterior: `map_info` y `dist_to_goal` serían de otro mapa. Leído en el código, sin
+  reproducir. `pf_dirty` ya es la señal exacta de invalidación, así que el filtro sobra; pero al quitarlo
+  `get_map_info` tiene que poner `pf_dirty = false` (hoy no lo hace, punto 8 de `PLAN.md`) o reconstruiría
+  en cada paso. Cambia cuándo se reconstruye la tabla: después de la reorganización del Lua.
+- [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: `get_entities_by(0, MASK.FLOOR, 0)` solo lee la
+  capa frontal (0 = `LAYER.FRONT`). Con el jugador en la capa trasera, `pf_tile_lookup[1]` no existe y
+  `map_info` sale todo a 0; `dist_to_goal` se busca en el tablero de la capa frontal. Leído en el
+  código, sin reproducir (entrar por una puerta a la capa trasera y mirar `map_info`). Mismo origen que
+  el de `count_dead_enemies`. Después de la reorganización del Lua.
+- [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: la salida es `exits[1]` de
+  `get_entities_by_type(ENT_TYPE.FLOOR_DOOR_EXIT)`. Con varias salidas (1-4 tiene dos: Jungla y Volcana)
+  la distancia es solo a una. Sin ninguna, `pf_goalx/pf_goaly` conservan el valor anterior (0,0 al
+  arrancar) y `pf_build_distance_field` indexa `pf_dist[0]`, que es `nil`: error dentro de `POST_UPDATE`
+  y Python espera hasta el timeout. Sin reproducir; falta saber si existe algún nivel sin
+  `FLOOR_DOOR_EXIT`. Arreglo: BFS desde todas las salidas y campo vacío si no hay ninguna.
 
 ## Improvements
 
@@ -64,6 +82,15 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   `config get/show`, y `make_launcher`/`doctor` lo leen como último recurso: `game_dir=` > variable de
   entorno > fichero. Podría cubrir también `launcher`, `image` y `renderer`. Actualizar la guía y
   `doctor` (que diga de dónde sale cada valor).
+- [2026-10-01 20:52 @2880e06] El mod Lua no informa de sus errores. `Connection.receive`
+  (`engine/protocol.py`) ya lanza `RuntimeError` con un mensaje `{"error": ...}` y
+  `docs/architecture.md` (sección "Lua Errors") dice que el Lua los envía, pero `main.lua` no lo hace
+  nunca: un error dentro de `POST_UPDATE` deja a Python esperando hasta el timeout sin explicación.
+  Envolver el cuerpo del callback en `xpcall` con `debug.traceback` y mandar `{"error": traza}` antes de
+  salir. Después de la reorganización del Lua (va en `session.lua`).
+- [2026-10-01 20:52 @2880e06] `main.lua`, `get_info`: `powerups[value-545+1] = 1` usa el id numérico de
+  `ITEM_POWERUP_PASTE`. Usar `ENT_TYPE.ITEM_POWERUP_PASTE` e ignorar los ids fuera de 545-562: hoy uno
+  fuera de rango escribiría fuera de las 18 posiciones y `json.encode` dejaría de mandar una lista de 18.
 
 ## Ideas
 
@@ -99,3 +126,18 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   píxeles como observación (hoy `render()` lee el Xvfb con mss).
 - [2026-09-28 14:02 @996066a] Captura dentro del juego enganchando `IDXGISwapChain::Present`, mismo caso
   que el anterior; también quitaría la barra de Overlunky de los frames (ver Bugs).
+- [2026-10-01 20:52 @2880e06] `reset` en `main.lua`: espera fija de 60 frames tras el `warp` antes de
+  aplicar `destroy_entities`/`set_start_values` y mandar el estado. Si a los 60 frames no hay jugador,
+  `set_start_values` indexa `players[1]` (`nil`) y falla. Mirar si se puede esperar a que el nivel esté
+  cargado (`state.screen == SCREEN.LEVEL` y `#players > 0`) en vez de contar frames, y cuánto acorta el
+  reset. De paso, revisar qué estado no se reinicia en `reset`: `last_distance` (ver Bugs), `transition`
+  y los últimos valores del jugador.
+- [2026-10-01 21:00 @2880e06] `get_to_exit` corta el episodio con -5 si la distancia mínima a la salida
+  no mejora en 200 pasos (`envs/get_to_exit.py`, `no_improve_counter`; 20 s de juego con
+  `frames_per_step=6`). `dist_to_goal` es una BFS en 4 direcciones por celdas no sólidas
+  (`pf_build_distance_field` en `main.lua`): mide como si el jugador volara, así que el mínimo puede
+  alcanzarse al pie de un pozo que no se puede subir. Si el camino real es un rodeo de más de 200 pasos,
+  el entorno lo corta y el agente no puede aprenderlo. La recompensa por acercarse (`*0.1` sobre la
+  diferencia de distancias) no es el problema: es una diferencia de potencial y no cambia la política
+  óptima. Mirar solo si el reentrenamiento (ver Next) se atasca: contar cuántos episodios acaban por
+  este corte y dónde está el jugador.
