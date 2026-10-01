@@ -130,6 +130,7 @@ Episodios (todos con `default_environment`, que pide `map_info`, `entity_info` y
 | `frames_per_step=1` y `12` | contador de frames |
 | usar bombas y cuerdas (acciones del espacio completo) | `pf_dirty` al destruir y crear bloques |
 | `speedup=False`, 60 pasos | el mod sin bucle de frames simulados |
+| `manual_control=True`, 60 pasos | las acciones del agente no llegan al juego |
 | semilla 268 con acciones fijas: baja con bombas a la salida, entra y sigue en 1-2 | `win`, pantalla de transición, tabla de bloques de un segundo nivel |
 
 [2026-10-01 21:51] Los episodios sin `god_mode` se cortan 60 frames después de morir: seguir dando
@@ -182,6 +183,9 @@ y dos veces `… golden.py compare` → `OK: 24 episodes, 4853 messages, all ide
 (`data["frames"] = 61` en `reset`) → `FAILED: 24 of 24 episodes differ`, primer campo `basic_info.time`.
 La traza se grabó con el `main.lua` de d1b3d70; para regrabarla, `git worktree add <dir> d1b3d70` y
 `golden.py record --mod <dir>/src/spelunky2rl/mod/lua`.
+
+[2026-10-01 22:04] Regrabada así (con `git archive d1b3d70`) al añadir el episodio `manual_control` antes de mover
+la entrada del agente en la fase 4: la referencia es ahora de 25 episodios y 4914 mensajes.
 
 ### Fase 1 — Limpieza sin mover nada  ·  status: done [2026-10-01 21:55]
 

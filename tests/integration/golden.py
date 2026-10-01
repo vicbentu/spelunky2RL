@@ -75,6 +75,8 @@ CASES = (
        case("state_updates_0", seed=1, god_mode=True, state_updates=0),
        case("state_updates_200", seed=1, god_mode=True, state_updates=200),
        case("no_speedup", seed=1, steps=60, god_mode=True, speedup=False),
+       # a person plays: the actions must not reach the game
+       case("manual_control", seed=1, steps=60, god_mode=True, manual_control=True),
        case("frames_per_step_1", seed=2, frames_per_step=1, god_mode=True),
        case("frames_per_step_12", seed=2, frames_per_step=12, god_mode=True),
        # floor tiles destroyed all along the episode: the tile table and the distance field are rebuilt

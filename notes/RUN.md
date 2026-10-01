@@ -42,3 +42,10 @@
   cuatro y la comprobación "hay entidad" (`~= -1`, `~= 0`, `~= nil`) es una función. El 545 de los
   powerups queda como constante con nombre, sin cambiar la cuenta (el arreglo está en BACKLOG).
   Verificado: `golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`.
+- [2026-10-01 22:04] Antes de cerrar la fase 4 vi que la traza no cubría `manual_control`, justo la condición que
+  cambia de sitio al mover la entrada del agente. Añadido el episodio `manual_control` (60 pasos, el
+  jugador no se mueve de x=17 mientras `time` avanza) y regrabada la referencia con el mod original
+  (`git archive d1b3d70` a un directorio temporal, `golden.py record --mod`): 25 episodios, 4914
+  mensajes. El mod original contra sí mismo y el árbol actual (fase 4) dan `OK`. `render=True` y
+  `close` siguen sin cubrir por la traza: el primero no cambia los mensajes y lo cubre
+  `test_render_returns_game_frames`; el segundo, `test_episode_and_cleanup` (fase 6).
