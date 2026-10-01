@@ -52,3 +52,23 @@ Coste: disco la primera vez en ext4. Solo afecta al modo sin Docker.
 
 Para cambiarlo: borrar `~/.local/share/spelunky2rl/wine/prefixes/`; o investigar el fallo con prefijo
 compartido.
+
+### 6. [2026-10-01 21:51 @d1b3d70] La traza de referencia del mod Lua no se guarda en git
+
+`tests/integration/golden.py record` deja la traza (24 episodios, 4853 mensajes, 0,8 MB comprimida) en
+`tests/integration/data/golden_trace.jsonl.gz`, y `tests/integration/data/` está en `.gitignore`.
+
+Elegí no versionarla: solo vale para un build del juego (`15a31692700c3c94`) y un build de Overlunky,
+así que a otra máquina no le sirve, y cada cambio de comportamiento buscado (los Bugs del backlog sobre
+`main.lua`) obliga a regrabarla: 0,8 MB binarios más en el historial cada vez.
+
+Descartado:
+- Versionarla en `tests/integration/data/`: quien clone tiene la referencia sin regrabar y el fichero
+  queda ligado al commit del mod que la generó; a cambio, binarios en el historial y una traza que
+  falla sin motivo con otro build del juego.
+- Fuera del repo (`~/.cache/spelunky2rl/`): no ensucia el árbol, pero es más fácil perderla de vista.
+
+Coste si me equivoco: si se borra el fichero hay que regrabarlo desde el commit de referencia (~25 s):
+`git worktree add <dir> d1b3d70` y `golden.py record --mod <dir>/src/spelunky2rl/mod/lua`.
+
+Para cambiarlo: quitar la línea `tests/integration/data/` de `.gitignore` y `git add` del fichero.

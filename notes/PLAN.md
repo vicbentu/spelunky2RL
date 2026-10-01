@@ -93,9 +93,10 @@ Reglas:
 - `PROTOCOL_VERSION` y `MOD_VERSION` pasan a `protocol.lua`; el test que los compara con Python
   (`tests/unit/test_startup.py`) se actualiza a la nueva ruta.
 
-A comprobar al empezar (paso 0): que `require("spelunky2rl.protocol")` resuelve con el
-`package.path = "lua/?.lua;…"` actual dentro del juego, y que Overlunky no comparte la caché de
-`require` entre scripts de forma que un nombre choque.
+Comprobado en la fase 0 con un submódulo de prueba: `require("spelunky2rl.x")` resuelve dentro del
+juego, y lo hace incluso antes de la línea `package.path = "lua/?.lua;…"`: lo resuelve el `require`
+propio de Overlunky, relativo a la carpeta del script. Dos `require` devuelven la misma tabla y
+`package.loaded` no se toca (caché propia por script), así que un nombre no puede chocar con otro script.
 
 ## 4. Pruebas
 
@@ -105,9 +106,16 @@ Script `tests/integration/golden.py` con dos modos:
 
 - `record`: con el mod **actual**, ejecuta un conjunto fijo de episodios y guarda **cada mensaje
   crudo** que envía el Lua (el JSON tal cual, antes de convertirlo en observación) en
-  `golden_trace.jsonl.gz` (fuera del repo o en `tests/integration/data/`, a decidir; unos MB).
-- `compare`: ejecuta lo mismo con el mod nuevo (vía `SPELUNKY2RL_DEV_MOD`, sin reconstruir la imagen)
-  y exige **igualdad exacta** mensaje a mensaje. Si difiere, informa del primer episodio, paso y campo.
+  `tests/integration/data/golden_trace.jsonl.gz` (0,8 MB, ignorado por git: `QUESTIONS.md` #6).
+- `compare`: ejecuta lo mismo con el mod nuevo (`--mod`, por defecto el del repo, montado vía
+  `SPELUNKY2RL_DEV_MOD` sin reconstruir la imagen) y exige los **mismos campos con los mismos
+  valores** mensaje a mensaje, con los números comparados como el texto que escribió el Lua. Si
+  difiere, informa del episodio, paso y campo.
+
+[2026-10-01 21:51] No se compara el orden de las claves: `json.encode` sigue el orden interno de la
+tabla Lua, que cambia de un proceso del juego a otro (dos grabaciones del mismo mod ya diferían en eso
+y en nada más). Todos los episodios van seguidos en una sola instancia, así que lo que el mod arrastra
+de un episodio al siguiente (`last_distance`, la tabla de bloques) también queda en la traza.
 
 Episodios (todos con `default_environment`, que pide `map_info`, `entity_info` y `dist_to_goal`):
 
@@ -121,6 +129,11 @@ Episodios (todos con `default_environment`, que pide `map_info`, `entity_info` y
 | `state_updates=0` y `200` | que el bucle de frames simulados no cambia nada |
 | `frames_per_step=1` y `12` | contador de frames |
 | usar bombas y cuerdas (acciones del espacio completo) | `pf_dirty` al destruir y crear bloques |
+| `speedup=False`, 60 pasos | el mod sin bucle de frames simulados |
+| semilla 268 con acciones fijas: baja con bombas a la salida, entra y sigue en 1-2 | `win`, pantalla de transición, tabla de bloques de un segundo nivel |
+
+[2026-10-01 21:51] Los episodios sin `god_mode` se cortan 60 frames después de morir: seguir dando
+pasos hasta la pantalla de muerte y resetear desde ahí deja el juego atascado (`BACKLOG.md`, Bugs).
 
 La reproducibilidad ya está comprobada (20/20 semillas idénticas tras arreglar la entrada), así que
 cualquier diferencia es un cambio de comportamiento. Antes de nada, `record` se ejecuta **dos veces**
@@ -153,12 +166,18 @@ lo detecta. Estimación: 1-2 horas.
 **Criterio común (fases 1-5).** `golden.py compare` contra la traza grabada en la fase 0 da igualdad
 exacta en todos los episodios de la sección 4.1, con el mod nuevo montado vía `SPELUNKY2RL_DEV_MOD`.
 
-### Fase 0 — Traza de referencia  ·  status: pending
+### Fase 0 — Traza de referencia  ·  status: done [2026-10-01 21:51]
 
 Escribir `tests/integration/golden.py`, grabar dos veces con el mod actual y comprobar que coinciden.
 Comprobar que `require("spelunky2rl.protocol")` resuelve dentro del juego con el `package.path` actual.
 
 **Criterio.** Las dos grabaciones con el mod actual son idénticas; un submódulo de prueba carga en el juego.
+
+**Verificado con:** `SPELUNKY2RL_GAME_DIR=~/spelunkyrl-test/gamero python tests/integration/golden.py record`
+y dos veces `… golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`. Con un mod alterado
+(`data["frames"] = 61` en `reset`) → `FAILED: 24 of 24 episodes differ`, primer campo `basic_info.time`.
+La traza se grabó con el `main.lua` de d1b3d70; para regrabarla, `git worktree add <dir> d1b3d70` y
+`golden.py record --mod <dir>/src/spelunky2rl/mod/lua`.
 
 ### Fase 1 — Limpieza sin mover nada  ·  status: pending
 

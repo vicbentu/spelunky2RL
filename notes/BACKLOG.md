@@ -57,6 +57,25 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   arrancar) y `pf_build_distance_field` indexa `pf_dist[0]`, que es `nil`: error dentro de `POST_UPDATE`
   y Python espera hasta el timeout. Sin reproducir; falta saber si existe algún nivel sin
   `FLOOR_DOOR_EXIT`. Arreglo: BFS desde todas las salidas y campo vacío si no hay ninguna.
+- [2026-10-01 21:29 @d1b3d70] Un `reset` con la pantalla de muerte ya en pantalla deja el juego atascado.
+  Reproducido: `DefaultEnv`, `reset(seed=0, speedup=True, state_updates=50)` con las acciones de
+  `tests/integration/golden.py` (`actions(0, 300, 0.02)`): el jugador muere en el paso 146 y
+  `basic_info.time` deja de avanzar ~148 frames después (1083). Si se siguen mandando `step` hasta el
+  paso 300 y luego `reset`, los episodios siguientes devuelven siempre el mismo estado (`time` fijo, el
+  jugador no se mueve) y en una ejecución un `step` acabó en `TimeoutError` a los 60 s. Con `reset` en
+  el paso de la muerte o 20 pasos (120 frames) después, todo va bien. El uso normal no lo toca
+  (`terminated` al morir y `reset` enseguida), pero un entorno que siga dando pasos tras la muerte, o un
+  usuario que tarde en resetear a velocidad real, sí. Sin diagnosticar: mirar `state.screen` /
+  `state.pause` al recibir `reset` y si `warp` basta desde `SCREEN.DEATH`.
+- [2026-10-01 21:51 @d1b3d70] `main.lua`, `pf_distance`: la celda del jugador se calcula con
+  `math.floor(px - pf_xmin + 1)` y `math.floor(pf_ymin - py + 1)`, pero las entidades están centradas en
+  coordenadas enteras (el bloque `tx` ocupa de `tx-0.5` a `tx+0.5`; el jugador de pie tiene
+  `y = ty + 0.05`). Al jugador se le asigna la fila de encima de la suya, y en horizontal la casilla
+  `tx` cuando está entre `tx+0.5` y `tx+1` (ya sobre `tx+1`). Visto con la semilla 268: dentro de la
+  casilla de la puerta de salida (`x=7.22, y=94.05`, puerta en (7, 94)) `dist_to_goal` vale 1, no 0. Los
+  entornos lo compensan dando por bueno `dist_to_goal <= 1`. `get_map_info` sí usa `math.round`.
+  Arreglo: `math.round` en las dos coordenadas y revisar ese umbral en `envs/`. Cambia `dist_to_goal`:
+  después de la reorganización del Lua.
 
 ## Improvements
 

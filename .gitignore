@@ -11,5 +11,8 @@ testing/
 *models*/
 *.mp4
 
+# golden trace of the Lua mod (tests/integration/golden.py): tied to one game build, re-recordable
+tests/integration/data/
+
 CLAUDE.md
 .claude/
