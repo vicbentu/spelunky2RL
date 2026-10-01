@@ -51,7 +51,7 @@ SpelunkyRL bridges Python-based RL frameworks with Spelunky 2 through a multi-la
    - Handles socket communication
    - Processes observations and rewards
 
-2. **Lua Layer** (injected scripts)
+2. **Lua Layer** (the mod in `mod/lua/`, run by Overlunky inside the game)
    - Extracts game state via overlunky API
    - Receives and executes actions
    - Sends data back to Python
@@ -130,6 +130,60 @@ The pack only holds `lua/`: Playlunky writes inside mod folders and hangs on rea
 contain images. `meta.unsafe` scripts (needed for luasocket) always start disabled in Playlunky, so
 Overlunky autoruns `main.lua` (`autorun_scripts`, `script_dir`, `enable_unsafe_scripts` in
 `overlunky.ini`).
+
+### The Lua mod (mod/lua/)
+
+Overlunky runs `main.lua`, which only hooks the modules in `spelunky2rl/` to the game. Reading it
+shows everything the mod attaches to:
+
+| Module | Owns | Hooked to |
+|---|---|---|
+| `protocol.lua` | the socket, the hello, `PROTOCOL_VERSION` and `MOD_VERSION` | connects when the script loads |
+| `session.lua` | the last command from Python, the frame countdown, the simulated frames | `ON.POST_UPDATE` |
+| `control.lua` | starting a level (warp, themes), start values, destroying entities, game options, the pause flag, skipping the render | `ON.RENDER_PRE_GAME`, `ON.RENDER_PRE_HUD` |
+| `input.lua` | the input held for the agent, `manual_control` | `ON.PRE_UPDATE` |
+| `observations.lua` | the player's last values, the `win` flag; builds the game state | `ON.TRANSITION` |
+| `pathfinding.lua` | the floor tile table and the distance field to the exit | spawn and destruction of floor tiles |
+| `util.lua` | `round`, `safe` | |
+
+Every module returns a table and keeps its state in locals: the mod defines no globals. A callback
+is registered only in `main.lua`. `luasocket/` is the vendored socket library.
+
+**One logic frame** (`session.on_post_update`):
+
+1. The pause flag is cleared, so the game can never sit in the pause menu.
+2. The countdown of the current command goes down by one. When it reaches 0 the mod *answers* that
+   command, *blocks* until Python sends the next one, and *starts* it:
+   - `reset` starts by releasing the input, warping to the level and applying the game options; it
+     is answered 60 frames later, once the level is loaded. Only then are the entities in
+     `ent_types_to_destroy` killed and `hp`, `bombs`, `ropes` and `gold` set, right before the state
+     is sent.
+   - `step` starts by holding the action and is answered `frames` frames later.
+   - `close` releases the input, restores the game speed and exits the game. So does a lost connection.
+3. With `speedup`, `update_state()` runs `state_updates` more logic frames. Each of them fires
+   `ON.POST_UPDATE` again and goes through steps 1 and 2: commands are received and answered inside
+   that loop.
+
+**Details that environments rely on**:
+
+- `win` is 1 in exactly one state, the first one sent after the player leaves through the exit.
+- While there is no player, `health` is 0 and every other player field keeps its last value; a
+  `step` received then does not change the held input.
+- The input is written to the game before every logic frame (`ON.PRE_UPDATE`) until the next `step`
+  replaces it. `reset` and `close` release it. With `manual_control` the agent's actions are ignored.
+- `map_info` is 11 rows (top to bottom) of 21 tile types around the player, 0 where there is no floor
+  tile. `entity_info` is a list of `[dx, dy, vel_x, vel_y, type, face_left, held type]`.
+- `dist_to_goal` counts cells to the exit through the ones that are not solid, in 4 directions, as
+  if the player could fly. When the player's cell cannot reach the exit, the last valid distance is
+  sent again (-1 if there has not been one).
+- The tile table and the distances are rebuilt when a floor tile has appeared or been destroyed
+  *and* the number of floor tiles has changed.
+
+**Changing the mod**: point `SPELUNKY2RL_DEV_MOD` at `src/spelunky2rl/mod/lua` to run your copy
+without rebuilding the image. `tests/integration/golden.py record` saves every message the mod sends
+over a fixed set of episodes, and `compare` demands the same messages from the modified mod: record
+before a change that must not alter behaviour, compare after it. The BFS of `pathfinding.lua` has
+unit tests that run with the system's Lua (`tests/unit/test_lua_pathfinding.py`).
 
 ### Reset Mechanism
 
@@ -259,7 +313,7 @@ Right after connecting, the mod sends:
 ```
 
 Python compares `protocol` with `PROTOCOL_VERSION` and fails with a message naming the image to
-use if they differ. Bump both constants (`protocol.py` and `mod/lua/main.lua`) whenever a message
+use if they differ. Bump both constants (`engine/protocol.py` and `mod/lua/spelunky2rl/protocol.lua`) whenever a message
 changes shape; the image tag always equals the package version.
 
 ### Command Types
@@ -554,4 +608,4 @@ From `pyproject.toml`:
 
 - **[Getting Started](getting-started.md)** - Installation and basic usage
 - **[Environments Guide](environments.md)** - Create custom environments
-- **Lua Scripts** - Located in `src/spelunky2rl/mod/lua/` (for advanced customization)
+- **Lua mod** - Located in `src/spelunky2rl/mod/lua/`; see [The Lua mod](#the-lua-mod-modlua)

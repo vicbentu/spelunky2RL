@@ -67,3 +67,19 @@
   en los comentarios de `engine/protocol.py` y `launchers/base.py`; `test_engine.py` comprueba además
   que el paquete incluye `spelunky2rl/session.lua`. Verificado: `ruff check`, `pytest tests/unit` → 65
   passed, `golden.py compare` → `OK: 25 episodes, 4914 messages, all identical`.
+- [2026-10-01 22:12] Fase 6 hecha y plan cerrado (`PLAN.md` borrado; lo que debía sobrevivirle está en
+  `docs/architecture.md`, sección nueva "The Lua mod": tabla de módulos, qué pasa en un frame y los
+  comportamientos sutiles de la sección 2 del plan). Imagen `ghcr.io/vicbentu/spelunky2rl-game:0.1.0`
+  reconstruida en local (solo cambia la capa del mod; `md5sum` de los `.lua` de la imagen = repo, sin
+  `jumper/`). Verificado sin `SPELUNKY2RL_DEV_MOD`, contra la imagen: `ruff check src tests examples`
+  limpio, `pytest tests/unit` → 65 passed, `pytest tests/integration` → 5 passed (4 entornos: 2352
+  pasos/s en total). Benchmark mod original (d1b3d70) frente al nuevo, dos instancias alternadas,
+  mediana de 5 repeticiones de 1500 pasos (500 con `state_updates=0`), pasos/s:
+  `state_updates` 0 → básico 369/371, `map_info` 336/344, `entity_info` 351/364, todo 320/325;
+  50 → 1493/1465 (-1,8 %), 1017/1066, 1136/1152, 878/923 (+5,2 %); 200 → 1594/1602, 1079/1155
+  (+7,1 %), 1228/1242, 930/979; 50 con bombas continuas → 478/507 (+6,2 %). Peor caso -1,8 %, dentro
+  del 5 % del criterio; quitar jumper se nota donde cambian los bloques. Un tropiezo: el primer wheel
+  de prueba llevaba `jumper/` porque `build/lib` (ignorado por git) tenía restos de una build anterior;
+  borrado `build/lib`, el wheel limpio trae `main.lua` + 7 módulos + luasocket y 0 ficheros de jumper.
+  Las entradas de BACKLOG que decían "después de la reorganización" o citaban `PLAN.md` apuntan ahora
+  al módulo donde vive el código. Aviso de `mss.mss` obsoleto → BACKLOG.
