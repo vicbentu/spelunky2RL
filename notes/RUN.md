@@ -49,3 +49,10 @@
   mensajes. El mod original contra sí mismo y el árbol actual (fase 4) dan `OK`. `render=True` y
   `close` siguen sin cubrir por la traza: el primero no cambia los mensajes y lo cubre
   `test_render_returns_game_frames`; el segundo, `test_episode_and_cleanup` (fase 6).
+- [2026-10-01 22:04] Fase 4 hecha: `spelunky2rl/control.lua` (`start_level`, `set_start_values`,
+  `destroy_entities`, `apply_options`, `set_speedup`, `disable_pause`, `skip_render`) e
+  `spelunky2rl/input.lua` (`hold`, `release`, `set_manual_control`, `apply`). `render_enabled` vive en
+  `control` y `manual_control` en `input`; `speedup` y `state_updates` se quedan en el callback porque
+  solo los usa el bucle de frames simulados (irán a `session`). `input.hold` calcula la máscara de
+  botones sin la tabla intermedia `last6`. Verificado: `golden.py compare` → `OK: 25 episodes, 4914
+  messages, all identical`.

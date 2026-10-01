@@ -200,7 +200,7 @@ cambian los nombres, no los valores ni las fórmulas.
 
 ### Fase 3 — `observations.lua` (con los últimos valores del jugador dentro)  ·  status: done [2026-10-01 22:01]
 
-### Fase 4 — `control.lua` e `input.lua`  ·  status: pending
+### Fase 4 — `control.lua` e `input.lua`  ·  status: done [2026-10-01 22:04]
 
 ### Fase 5 — `protocol.lua` y `session.lua`  ·  status: pending
 
