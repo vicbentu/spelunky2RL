@@ -116,6 +116,13 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
 - [2026-10-01 20:52 @2880e06] `main.lua`, `get_info`: `powerups[value-545+1] = 1` usa el id numérico de
   `ITEM_POWERUP_PASTE`. Usar `ENT_TYPE.ITEM_POWERUP_PASTE` e ignorar los ids fuera de 545-562: hoy uno
   fuera de rango escribiría fuera de las 18 posiciones y `json.encode` dejaría de mandar una lista de 18.
+- [2026-10-01 22:06 @c8443f9] `main.lua`: la línea `package.path = "lua/?.lua;" .. package.path` parece no hacer nada.
+  Con un submódulo de prueba, `require("spelunky2rl.probe")` resolvió *antes* de esa línea (lo resuelve
+  el `require` de Overlunky, relativo a la carpeta del script), `lua/` no existe respecto al directorio
+  de trabajo del juego (`io.open("lua/spelunky2rl/probe.lua")` da `nil`) y luasocket carga su DLL con
+  `package.loadlib` y la ruta de `script_path.lua`. Quitarla y pasar `golden.py compare` y
+  `tests/integration`. Solo probado bajo Wine en Docker; no la quité en la reorganización porque no
+  puedo probarlo en Windows nativo.
 
 ## Ideas
 

@@ -202,7 +202,7 @@ cambian los nombres, no los valores ni las fórmulas.
 
 ### Fase 4 — `control.lua` e `input.lua`  ·  status: done [2026-10-01 22:04]
 
-### Fase 5 — `protocol.lua` y `session.lua`  ·  status: pending
+### Fase 5 — `protocol.lua` y `session.lua`  ·  status: done [2026-10-01 22:06]
 
 `main.lua` queda solo con el registro de callbacks.
 

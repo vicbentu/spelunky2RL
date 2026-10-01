@@ -8,7 +8,7 @@ import psutil
 
 from ..frames import FrameSource, NullFrameSource
 
-PORT_ENV = "Spelunky_RL_Port"  # read by mod/lua/main.lua
+PORT_ENV = "Spelunky_RL_Port"  # read by mod/lua/spelunky2rl/protocol.lua
 
 
 class Launcher:

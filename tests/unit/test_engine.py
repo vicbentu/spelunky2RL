@@ -88,6 +88,7 @@ def test_close_survives_dead_game(make_env):
 
 def test_package_ships_the_mod_and_entity_names():
     assert (files("spelunky2rl") / "mod" / "lua" / "main.lua").is_file()
+    assert (files("spelunky2rl") / "mod" / "lua" / "spelunky2rl" / "session.lua").is_file()
     assert (files("spelunky2rl") / "mod" / "lua" / "luasocket" / "socket_core.dll").is_file()
     assert spelunky2rl.id2name(23)["name"] == "FLOOR_DOOR_EXIT"
 

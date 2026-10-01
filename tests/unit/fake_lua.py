@@ -1,4 +1,4 @@
-"""A stand-in for lua/main.lua: speaks the JSON-lines protocol and answers with synthetic game states."""
+"""A stand-in for the Lua mod: speaks the JSON-lines protocol and answers with synthetic game states."""
 
 import json
 import socket
@@ -9,7 +9,7 @@ import numpy as np
 
 def make_gamestate(rng, time=60, health=4, dist_to_goal=50, dead_enemies=0, money=0, win=0,
                    data_to_send=("map_info", "dist_to_goal", "entity_info")):
-    """A game state with the shape and value ranges that main.lua produces."""
+    """A game state with the shape and value ranges that the mod produces."""
     gamestate = {
         "basic_info": {
             "x": 20.0, "y": 100.0, "x_rest": 0.3, "y_rest": 0.05, "layer": 0,

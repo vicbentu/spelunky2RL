@@ -1,4 +1,4 @@
-"""JSON-lines protocol between Python and the Lua mod (mod/lua/main.lua).
+"""JSON-lines protocol between Python and the Lua mod (mod/lua/spelunky2rl/protocol.lua).
 
 Python listens on 127.0.0.1 and the Lua mod connects. The mod first sends
 ``{"hello": {"protocol": N, "mod": "x.y.z"}}``; after that every message from Python
@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 
 from ..version import __version__
 
-# Bump when a message changes shape; keep in sync with PROTOCOL_VERSION in mod/lua/main.lua
+# Bump when a message changes shape; keep in sync with PROTOCOL_VERSION in mod/lua/spelunky2rl/protocol.lua
 PROTOCOL_VERSION = 1
 
 

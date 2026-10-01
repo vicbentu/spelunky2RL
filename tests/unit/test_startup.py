@@ -14,7 +14,7 @@ from spelunky2rl.version import __version__
 
 
 def test_mod_and_package_versions_agree():
-    lua = (files("spelunky2rl") / "mod" / "lua" / "main.lua").read_text()
+    lua = (files("spelunky2rl") / "mod" / "lua" / "spelunky2rl" / "protocol.lua").read_text()
     assert re.search(r"local PROTOCOL_VERSION = (\d+)", lua).group(1) == str(PROTOCOL_VERSION)
     assert re.search(r'local MOD_VERSION = "([^"]+)"', lua).group(1) == __version__
 

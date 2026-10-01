@@ -56,3 +56,14 @@
   solo los usa el bucle de frames simulados (irán a `session`). `input.hold` calcula la máscara de
   botones sin la tabla intermedia `last6`. Verificado: `golden.py compare` → `OK: 25 episodes, 4914
   messages, all identical`.
+- [2026-10-01 22:06] Fase 5 hecha: `spelunky2rl/protocol.lua` (`connect`, `send`, `receive`, las dos constantes de
+  versión) y `spelunky2rl/session.lua` (`on_post_update`). La tabla `data` se parte en `command` (el
+  último mensaje, que ya no se modifica) y `frames_left`; el callback queda como "contestar al comando
+  que acaba → recibir → empezar el siguiente" (`answer` / `start`). Una diferencia fuera del protocolo
+  válido: un comando desconocido antes hacía fallar la resta `nil - 1` en el frame siguiente; ahora se
+  ignora y se vuelve a esperar mensaje. `main.lua` son 25 líneas: `package.path`, los `require`,
+  `protocol.connect()` y los seis registros, en el mismo orden que antes. Comprobado con `luac -l` que
+  ningún módulo escribe globales. Actualizadas las rutas de `PROTOCOL_VERSION` en `test_startup.py` y
+  en los comentarios de `engine/protocol.py` y `launchers/base.py`; `test_engine.py` comprueba además
+  que el paquete incluye `spelunky2rl/session.lua`. Verificado: `ruff check`, `pytest tests/unit` → 65
+  passed, `golden.py compare` → `OK: 25 episodes, 4914 messages, all identical`.
