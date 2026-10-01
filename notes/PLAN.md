@@ -194,7 +194,7 @@ convertir las globales accidentales en locales.
 `y` más alta del nivel (fila 1 del tablero) y `pf_ymax` la más baja. Pasan a `top` y `bottom`; solo
 cambian los nombres, no los valores ni las fórmulas.
 
-### Fase 3 — `observations.lua` (con los últimos valores del jugador dentro)  ·  status: pending
+### Fase 3 — `observations.lua` (con los últimos valores del jugador dentro)  ·  status: done [2026-10-01 22:01]
 
 ### Fase 4 — `control.lua` e `input.lua`  ·  status: pending
 

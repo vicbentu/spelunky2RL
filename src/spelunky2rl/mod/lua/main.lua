@@ -18,13 +18,11 @@ end
 client:setoption("tcp-nodelay", true)  -- one small message each way per step: never wait to batch
 client:send(json.encode({hello = {protocol = PROTOCOL_VERSION, mod = MOD_VERSION}}) .. "\n")
 
-local util = require("spelunky2rl.util")
 local pathfinding = require("spelunky2rl.pathfinding")
-local round, safe = util.round, util.safe
+local observations = require("spelunky2rl.observations")
 
 
 --------------- GLOBAL VARIABLES ----------------
-local transition = 0
 local speedup = false
 local manual_control = false
 local state_updates = 0
@@ -35,10 +33,6 @@ local data = {
     command = "pass"
 }
 local agent_input = nil  -- INPUTS applied every frame until the next step; nil = leave input alone
-
-local x, y, vel_x, vel_y, health, money, bombs, ropes, layer, face_left_player, holding_type_player, back_item, char_state, can_jump =
-      0, 0, 0,     0,     0,      0,     0,     0,     0,     0,                0,                   0,         0,          false
-local powerups = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} -- 18 powerups, 0 = not, 1 = yes
 
 ---------------- AUX FUNCTIONS ----------------
 local function destroy_entities(entity_types)
@@ -114,156 +108,6 @@ local function booleans_to_button_mask(booleans)
 end
 
 
---------------- INFO RETRIEVAL ----------------
-
-local function count_dead_enemies()
-    local all_monsters = get_entities_by(0, MASK.MONSTER, LAYER.FRONT)
-    local dead_count = 0
-
-    for _, uid in ipairs(all_monsters) do
-        local ent = get_entity(uid)
-        if ent.health <= 0 then
-            dead_count = dead_count + 1
-        end
-    end
-
-    return dead_count
-end
-
-local function get_entities_info(x, y, layer)
-    local mask = 0xFFFFFFFF & ~(MASK.DECORATION | MASK.BG | MASK.SHADOW | MASK.FLOOR | MASK.LIQUID | MASK.FX)
-    local entities = get_entities_overlapping_hitbox(
-        0, -- all types of entity
-        mask,
-        AABB:new(round(x-10), round(y+5), round(x+10), round(y-5)),
-        layer
-    )
-    local info = {}
-    for _, uid in ipairs(entities) do
-        local entity = get_entity(uid)
-        local ex, ey = get_position(uid)
-        local dx, dy = ex - x, ey - y
-        local vx, vy = get_velocity(uid)
-        local face_left = (entity.flags & (1 << 16)) ~= 0
-
-        local holding_type = 0
-        if entity.holding_uid ~= -1 and entity.holding_uid ~=0 and entity.holding_uid ~= nil then
-            holding_type = get_entity_type(entity.holding_uid)
-        end
-
-        table.insert(info,{
-            safe(dx, 0), safe(dy, 0),
-            safe(vx, 0), safe(vy, 0),
-            safe(get_entity_type(uid), 0),
-            face_left and 1 or 0,
-            safe(holding_type, 0),
-        })
-    end
-
-    return info
-end
-
-local function get_map_info(x, y, layer)
-    local tile_ids = pathfinding.tile_ids()
-
-    local sx, ex = round(x - 10), round(x + 10)
-    local sy, ey = round(y - 5),  round(y + 5)
-
-    local maptiles = {}
-    for ty = ey, sy, -1 do
-        local row = {}
-        for tx = sx, ex do
-            local id = 0
-            local layer_tbl = tile_ids[layer]
-            if layer_tbl and layer_tbl[ty] and layer_tbl[ty][tx] then
-                id = layer_tbl[ty][tx]
-            end
-            row[#row + 1] = id
-        end
-        maptiles[#maptiles + 1] = row
-    end
-    return maptiles
-end
-
-
-local function get_info(additional_fields)
-    if #players ~= 0 then
-        x, y, layer = get_position(players[1].uid)
-        health, money, bombs, ropes = players[1].health, players[1].inventory.money, players[1].inventory.bombs, players[1].inventory.ropes
-        
-        vel_x, vel_y = get_velocity(players[1].uid)
-        face_left_player = (players[1].flags & (1 << 16)) ~= 0
-        holding_type_player = 0
-        if players[1].holding_uid ~= -1 and players[1].holding_uid ~=0 and players[1].holding_uid ~= nil then
-            holding_type_player = get_entity_type(players[1].holding_uid)
-        end
-        back_item = 0
-        if players[1]:worn_backitem() ~= -1 and players[1]:worn_backitem() ~= 0 and players[1]:worn_backitem() ~= nil then
-            back_item = get_entity_type(players[1]:worn_backitem())
-        end
-
-        powerups = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-        for _, value in ipairs(players[1]:get_powerups()) do
-            if value ~= 0 then
-                powerups[value-545+1] = 1 
-            end
-        end
-
-        char_state = players[1].state
-        can_jump = players[1]:can_jump()
-
-    else
-        health = 0
-    end
-
-    local data = {
-        basic_info = {
-            x = x,
-            y = y,
-            x_rest  = x - math.floor(x),
-            y_rest  = y - math.floor(y),
-            layer = layer,
-            health = health,
-            bombs = bombs,
-            ropes = ropes,
-            money = money,
-            vel_x = vel_x,
-            vel_y = vel_y,
-            face_left = face_left_player,
-            powerups = powerups,
-            holding_type_player = holding_type_player,
-            back_item = back_item,
-            char_state = char_state,
-            can_jump = can_jump,
-            world = state.world,
-            level = state.level,
-            theme = state.theme,
-            time = state.time_level,
-            win = transition,
-            dead_enemies = count_dead_enemies(),
-        },
-    }
-    if transition == 1 then
-        transition = 0
-    end
-
-    -- ADDITIONAL INFO
-    for i, value in ipairs(additional_fields) do
-        if value == "map_info" then
-            data.map_info = get_map_info(x, y, layer)
-        elseif value == "dist_to_goal" then
-            data.dist_to_goal = pathfinding.distance(x, y)
-        elseif value == "entity_info" then
-            data.entity_info = get_entities_info(x,y,layer)
-        elseif value == "custom_info" then
-            data.custom_info = ""
-        end
-    end
-
-    return data
-end
-
-
 set_callback(function()
 
     -- DISABLE PAUSE
@@ -276,14 +120,14 @@ set_callback(function()
 
         -- SEND
         if data["command"] == "step" then
-            local serialized_data = json.encode(get_info(data["data_to_send"]))
+            local serialized_data = json.encode(observations.collect(data["data_to_send"]))
             client:send(serialized_data .. "\n")
 
         elseif data["command"] == "reset" then
             -- LOAD ITEMS, etc
             destroy_entities(data["ent_types_to_destroy"])
             set_start_values(data)
-            local serialized_data = json.encode(get_info(data["data_to_send"]))
+            local serialized_data = json.encode(observations.collect(data["data_to_send"]))
             client:send(serialized_data .. "\n")
         end
 
@@ -348,9 +192,7 @@ set_callback(function()
     end
 end, ON.POST_UPDATE)
 
-set_callback(function()
-    transition = 1
-end, ON.TRANSITION)
+set_callback(observations.on_transition, ON.TRANSITION)
 
 -- Headless: skip drawing the level and the HUD when nobody looks at the frames
 set_callback(function()

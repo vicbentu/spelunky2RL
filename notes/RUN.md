@@ -35,3 +35,10 @@
   un test estaba mal calculado, no el código. Verificado: `pytest tests/unit` → 65 passed;
   `golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`. Los módulos cargados con
   `require` ven la API del juego (`get_entities_by`, `ENT_TYPE`…) igual que `main.lua`.
+- [2026-10-01 22:01] Fase 3 hecha: `spelunky2rl/observations.lua` con `collect(fields)` (el antiguo `get_info`) y
+  `on_transition()`. Las 14 variables sueltas del jugador son ahora una tabla `last` con los mismos
+  valores iniciales (incluido `face_left = 0`, número y no booleano, que es lo que saldría si se
+  mandara un estado antes de haber visto al jugador). `worn_backitem()` se llama una vez en lugar de
+  cuatro y la comprobación "hay entidad" (`~= -1`, `~= 0`, `~= nil`) es una función. El 545 de los
+  powerups queda como constante con nombre, sin cambiar la cuenta (el arreglo está en BACKLOG).
+  Verificado: `golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`.
