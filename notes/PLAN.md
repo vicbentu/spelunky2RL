@@ -158,6 +158,10 @@ Si `pathfinding.lua` separa la parte pura (tablero → campo de distancias BFS) 
 entidades, esa parte se puede probar con un intérprete `lua5.4` del sistema desde pytest (tableros
 pequeños con distancias conocidas). Solo si el intérprete está disponible en CI; si no, se omite.
 
+[2026-10-01 21:59] Hecho en la fase 2: `pathfinding.distance_field(board, goal_x, goal_y)` no toca la API del
+juego y `tests/unit/test_lua_pathfinding.py` la prueba con el `lua` del sistema (3 tableros). Sin
+intérprete los tests se saltan; el CI no instala Lua (`QUESTIONS.md` #7).
+
 ## 5. Fases (commits pequeños, cada una pasa la traza)
 
 Riesgo principal: el orden de las operaciones dentro de `POST_UPDATE` (sección 2, puntos 1-3); la traza
@@ -184,7 +188,7 @@ La traza se grabó con el `main.lua` de d1b3d70; para regrabarla, `git worktree 
 Quitar jumper y `pf_grid`/`pf_finder`, variables sin uso, medidas de tiempo y comentarios muertos;
 convertir las globales accidentales en locales.
 
-### Fase 2 — `util.lua` y `pathfinding.lua`  ·  status: pending
+### Fase 2 — `util.lua` y `pathfinding.lua`  ·  status: done [2026-10-01 21:59]
 
 [2026-10-01 20:59] Al mover el estado `pf_*`, renombrar los límites verticales: hoy `pf_ymin` guarda la
 `y` más alta del nivel (fila 1 del tablero) y `pf_ymax` la más baja. Pasan a `top` y `bottom`; solo

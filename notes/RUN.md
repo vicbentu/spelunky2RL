@@ -26,3 +26,12 @@
   `math.round` (ahora `round`) pasan a locales. Nada se mueve de sitio todavía, para que el diff se lea
   solo como borrado. Verificado: `luac -p`, y `golden.py compare` → `OK: 24 episodes, 4853 messages, all
   identical`.
+- [2026-10-01 21:59] Fase 2 hecha: `spelunky2rl/util.lua` (`round`, `safe`) y `spelunky2rl/pathfinding.lua`
+  (tabla de bloques, BFS, bandera de cambios). `pf_ymin`/`pf_ymax` pasan a `top`/`bottom`; `pf_xmax` y
+  el límite inferior solo se usaban dentro de `refresh`, así que ahí se quedan como locales, igual que
+  el tablero. El BFS es una función sin API del juego (`distance_field`) y tiene 3 tests con el `lua`
+  del sistema, que se saltan si no hay intérprete → Q7. Se conserva a propósito que `tile_ids()` (para
+  `map_info`) no limpie la bandera y `distance()` sí. Un fallo de mi parte en el camino: el esperado de
+  un test estaba mal calculado, no el código. Verificado: `pytest tests/unit` → 65 passed;
+  `golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`. Los módulos cargados con
+  `require` ven la API del juego (`get_entities_by`, `ENT_TYPE`…) igual que `main.lua`.

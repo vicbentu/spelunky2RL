@@ -72,3 +72,20 @@ Coste si me equivoco: si se borra el fichero hay que regrabarlo desde el commit 
 `git worktree add <dir> d1b3d70` y `golden.py record --mod <dir>/src/spelunky2rl/mod/lua`.
 
 Para cambiarlo: quitar la línea `tests/integration/data/` de `.gitignore` y `git add` del fichero.
+
+### 7. [2026-10-01 21:59 @3d4af91] Los tests del BFS en Lua se saltan en CI
+
+`tests/unit/test_lua_pathfinding.py` ejecuta `pathfinding.distance_field` con el intérprete `lua5.4` o
+`lua` del sistema (aquí Lua 5.3.6: 3 tests pasan). El plan los daba como opcionales, "solo si el
+intérprete está disponible en CI". Los runners `ubuntu-latest` no traen Lua.
+
+Elegí escribirlos con `skipif` y no tocar el CI: en local se ejecutan y en CI aparecen como saltados.
+
+Descartado:
+- Instalar Lua en el CI: los tests correrían en cada PR; a cambio, un `apt-get` más en el job de tests
+  por 3 tests de una función que solo cambia si se toca el pathfinding.
+- No escribir los tests: nada que mantener, pero el BFS solo quedaría cubierto por la traza, que
+  necesita el juego.
+
+Para cambiarlo: añadir `- run: sudo apt-get install -y lua5.4` antes de `pytest` en
+`.github/workflows/ci.yml`; o borrar el fichero de tests.

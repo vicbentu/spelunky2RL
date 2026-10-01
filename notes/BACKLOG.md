@@ -76,6 +76,12 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   entornos lo compensan dando por bueno `dist_to_goal <= 1`. `get_map_info` sí usa `math.round`.
   Arreglo: `math.round` en las dos coordenadas y revisar ese umbral en `envs/`. Cambia `dist_to_goal`:
   después de la reorganización del Lua.
+- [2026-10-01 21:59 @3d4af91] `pathfinding.lua`, `distance`: comprueba que la fila existe (`if distances[row]`) pero
+  no la columna; con el jugador en una columna fuera del tablero, `distances[row][column]` es `nil` y
+  `nil > -1` es un error dentro de `POST_UPDATE` (Python espera hasta el timeout). Viene tal cual del
+  `pf_distance` de `main.lua`. Sin reproducir: hace falta que el jugador esté a la izquierda o a la
+  derecha de todos los bloques de suelo de la capa frontal. Arreglo: tratar la columna que falta como
+  la fila que falta (devolver `last_distance`).
 
 ## Improvements
 
