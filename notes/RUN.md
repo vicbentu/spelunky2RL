@@ -1,5 +1,37 @@
 # Run — Reorganizar el mod Lua en módulos (`PLAN.md`, fases 0-6)  ·  started [2026-10-01 21:12 @d1b3d70]
 
+## Summary
+
+[2026-10-01 22:13] Plan completo: las 7 fases hechas en 8 commits (`0186ce5..cf49425`, rama
+`refactor/lua`, nada subido). `PLAN.md` borrado.
+
+- **Fase 0** — `tests/integration/golden.py` (`record` / `compare`) y la traza de referencia del mod
+  original: 25 episodios, 4914 mensajes, en `tests/integration/data/` (sin versionar).
+- **Fase 1** — fuera `jumper/`, código muerto y las 4 globales accidentales.
+- **Fases 2-5** — `main.lua` pasa de 537 líneas a 25 (solo registra callbacks) más 7 módulos en
+  `mod/lua/spelunky2rl/`: `util`, `pathfinding`, `observations`, `control`, `input`, `protocol`,
+  `session`. 3 tests del BFS con el Lua del sistema.
+- **Fase 6** — sección "The Lua mod" en `docs/architecture.md`, imagen local reconstruida.
+
+Verificado sobre el árbol final: `golden.py compare` → `OK: 25 episodes, 4914 messages, all
+identical`; `pytest tests/unit` → 65 passed; `pytest tests/integration` contra la imagen reconstruida →
+5 passed; benchmark frente al mod original entre -1,8 % y +7,1 % (criterio: no más de un 5 % peor).
+
+`QUESTIONS.md`: ninguna IMPORTANT. Dos decisiones aplicadas: #6 (la traza no se guarda en git) y #7
+(los tests del BFS se saltan en CI porque no instala Lua).
+
+`BACKLOG.md`, nuevo: en Bugs, un `reset` desde la pantalla de muerte deja el juego atascado; la celda
+del jugador en `dist_to_goal` está desplazada media casilla (por eso el éxito es `<= 1`); `distance`
+falla si la columna cae fuera del tablero. En Improvements, la línea `package.path` de `main.lua`
+parece sobrar; `mss.mss` está obsoleto. Ninguna entrada `From "<tarea>"`: no quedó nada del plan sin
+hacer. Las entradas antiguas que esperaban a esta reorganización apuntan ya a los módulos nuevos.
+
+Sin verificar: el lanzador `wine` (no hay `~/.local/share/spelunky2rl/wine` en esta máquina; el mod es
+el mismo, pero no lo he ejecutado así); Windows nativo; que los tests de Lua corran en CI (se saltan).
+Dos cosas distintas de lo que decía el plan: la comparación no es byte a byte sino por campos y
+valores, porque el orden de las claves JSON cambia entre procesos del juego; y un comando desconocido
+ahora se ignora en vez de provocar un error un frame después.
+
 ## Log
 
 - [2026-10-01 21:12] Arranque. Sin `RUN.md` previo; `QUESTIONS.md` sin respuestas pendientes. El plan no
