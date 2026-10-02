@@ -62,7 +62,7 @@ ahora se ignora en vez de provocar un error un frame después.
   (tabla de bloques, BFS, bandera de cambios). `pf_ymin`/`pf_ymax` pasan a `top`/`bottom`; `pf_xmax` y
   el límite inferior solo se usaban dentro de `refresh`, así que ahí se quedan como locales, igual que
   el tablero. El BFS es una función sin API del juego (`distance_field`) y tiene 3 tests con el `lua`
-  del sistema, que se saltan si no hay intérprete → Q7. Se conserva a propósito que `tile_ids()` (para
+  del sistema, que se saltan si no hay intérprete → Q/lua-tests-skipped-in-ci. Se conserva a propósito que `tile_ids()` (para
   `map_info`) no limpie la bandera y `distance()` sí. Un fallo de mi parte en el camino: el esperado de
   un test estaba mal calculado, no el código. Verificado: `pytest tests/unit` → 65 passed;
   `golden.py compare` → `OK: 24 episodes, 4853 messages, all identical`. Los módulos cargados con
