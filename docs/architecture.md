@@ -180,10 +180,8 @@ is registered only in `main.lua`. `luasocket/` is the vendored socket library.
   *and* the number of floor tiles has changed.
 
 **Changing the mod**: point `SPELUNKY2RL_DEV_MOD` at `src/spelunky2rl/mod/lua` to run your copy
-without rebuilding the image. `tests/integration/golden.py record` saves every message the mod sends
-over a fixed set of episodes, and `compare` demands the same messages from the modified mod: record
-before a change that must not alter behaviour, compare after it. The BFS of `pathfinding.lua` has
-unit tests that run with the system's Lua (`tests/unit/test_lua_pathfinding.py`).
+without rebuilding the image, and check it with `tests/integration`. The BFS of `pathfinding.lua`
+has unit tests that run with the system's Lua (`tests/unit/test_lua_pathfinding.py`).
 
 ### Reset Mechanism
 

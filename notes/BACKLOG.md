@@ -30,8 +30,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   antiguo, ver Ideas).
 - [2026-09-30 00:17 @222ac52] `main.lua`: `last_distance` no se reinicia en `reset`, así que el primer
   `dist_to_goal` de un episodio puede ser el último del anterior si la celda inicial no está en el campo
-  de distancias. Hoy en `spelunky2rl/pathfinding.lua` (`last_distance`). Arreglarlo cambia los mensajes:
-  regrabar después la traza de `tests/integration/golden.py`.
+  de distancias. Hoy en `spelunky2rl/pathfinding.lua` (`last_distance`).
 - [2026-09-30 00:17 @222ac52] `main.lua`: `count_dead_enemies` solo mira la capa frontal (enemigos
   muertos en la capa trasera no cuentan). Hoy `dead_enemies` en `spelunky2rl/observations.lua`.
 - [2026-10-01 01:03 @22d4d83] Las opciones de `reset` desconocidas se ignoran sin avisar: `_game_reset`
@@ -61,7 +60,8 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   y `distance_field` en `spelunky2rl/pathfinding.lua`.
 - [2026-10-01 21:29 @d1b3d70] Un `reset` con la pantalla de muerte ya en pantalla deja el juego atascado.
   Reproducido: `DefaultEnv`, `reset(seed=0, speedup=True, state_updates=50)` con las acciones de
-  `tests/integration/golden.py` (`actions(0, 300, 0.02)`): el jugador muere en el paso 146 y
+  `actions(0, 300, 0.02)` (generador en `git show 7984d75:tests/integration/golden.py`, borrado
+  después): el jugador muere en el paso 146 y
   `basic_info.time` deja de avanzar ~148 frames después (1083). Si se siguen mandando `step` hasta el
   paso 300 y luego `reset`, los episodios siguientes devuelven siempre el mismo estado (`time` fijo, el
   jugador no se mueve) y en una ejecución un `step` acabó en `TimeoutError` a los 60 s. Con `reset` en
@@ -123,7 +123,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   Con un submódulo de prueba, `require("spelunky2rl.probe")` resolvió *antes* de esa línea (lo resuelve
   el `require` de Overlunky, relativo a la carpeta del script), `lua/` no existe respecto al directorio
   de trabajo del juego (`io.open("lua/spelunky2rl/probe.lua")` da `nil`) y luasocket carga su DLL con
-  `package.loadlib` y la ruta de `script_path.lua`. Quitarla y pasar `golden.py compare` y
+  `package.loadlib` y la ruta de `script_path.lua`. Quitarla y pasar
   `tests/integration`. Solo probado bajo Wine en Docker; no la quité en la reorganización porque no
   puedo probarlo en Windows nativo.
 - [2026-10-01 22:12 @13fadde] `engine/frames/x11.py:15`: `mss.mss(display=display)` da `DeprecationWarning: mss.mss is
