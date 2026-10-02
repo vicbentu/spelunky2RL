@@ -16,7 +16,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
 - [2026-09-28 13:53 @ce9dcf6] `examples/record_video.py` de punta a punta con un modelo entrenado (último
   pendiente de headless/render).
 - [2026-09-30 00:20 @222ac52] Publicar la imagen del juego (tag `v<versión>` →
-  `.github/workflows/docker.yml`); pendiente de push, ver `QUESTIONS.md` #2.
+  `.github/workflows/docker.yml`); pendiente de push, ver `Q/game-image-unpublished` en `QUESTIONS.md`.
 
 ## Bugs
 
@@ -28,36 +28,13 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   con la tecla (`src/injected/ui.cpp` de overlunky). Vías sin probar: recortar las filas superiores en
   `X11FrameSource`, pedir upstream una opción de ini, o capturar dentro del juego (Fase 6 del plan
   antiguo, ver Ideas).
-- [2026-09-30 00:17 @222ac52] `main.lua`: `last_distance` no se reinicia en `reset`, así que el primer
-  `dist_to_goal` de un episodio puede ser el último del anterior si la celda inicial no está en el campo
-  de distancias. Hoy en `spelunky2rl/pathfinding.lua` (`last_distance`).
 - [2026-09-30 00:17 @222ac52] `main.lua`: `count_dead_enemies` solo mira la capa frontal (enemigos
   muertos en la capa trasera no cuentan). Hoy `dead_enemies` en `spelunky2rl/observations.lua`.
-- [2026-10-01 01:03 @22d4d83] Las opciones de `reset` desconocidas se ignoran sin avisar: `_game_reset`
-  (`engine/core.py`) acaba en `**kwargs`, así que un `bomb=3` (por `bombs=3`) en `reset_options` o en
-  `env.reset(...)` no da error y el episodio arranca con los valores por defecto. Arreglo: quitar
-  `**kwargs` o lanzar `TypeError` con los nombres sobrantes. Independiente del rediseño del contrato
-  (ver Ideas).
-- [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: sale sin reconstruir si el número de bloques de
-  suelo no cambió (`if #tiles == pf_ntiles then return end`). Tras un `reset` o una transición a un nivel
-  distinto con el mismo número de bloques, `pf_tile_lookup`, `pf_board`, `pf_dist` y la celda de salida
-  quedan del nivel anterior: `map_info` y `dist_to_goal` serían de otro mapa. Leído en el código, sin
-  reproducir. `pf_dirty` ya es la señal exacta de invalidación, así que el filtro sobra; pero al quitarlo
-  `get_map_info` tiene que poner `pf_dirty = false` (hoy no lo hace) o reconstruiría en cada paso. Cambia
-  cuándo se reconstruye la tabla. Hoy en `spelunky2rl/pathfinding.lua`: `refresh`, `tile_count`,
-  `tile_ids()` (la parte de `get_map_info` que no limpia la bandera) y `dirty`.
 - [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: `get_entities_by(0, MASK.FLOOR, 0)` solo lee la
   capa frontal (0 = `LAYER.FRONT`). Con el jugador en la capa trasera, `pf_tile_lookup[1]` no existe y
   `map_info` sale todo a 0; `dist_to_goal` se busca en el tablero de la capa frontal. Leído en el
   código, sin reproducir (entrar por una puerta a la capa trasera y mirar `map_info`). Mismo origen que
   el de `count_dead_enemies`. Hoy `refresh` en `spelunky2rl/pathfinding.lua`.
-- [2026-10-01 20:52 @2880e06] `main.lua`, `pf_refresh`: la salida es `exits[1]` de
-  `get_entities_by_type(ENT_TYPE.FLOOR_DOOR_EXIT)`. Con varias salidas (1-4 tiene dos: Jungla y Volcana)
-  la distancia es solo a una. Sin ninguna, `pf_goalx/pf_goaly` conservan el valor anterior (0,0 al
-  arrancar) y `pf_build_distance_field` indexa `pf_dist[0]`, que es `nil`: error dentro de `POST_UPDATE`
-  y Python espera hasta el timeout. Sin reproducir; falta saber si existe algún nivel sin
-  `FLOOR_DOOR_EXIT`. Arreglo: BFS desde todas las salidas y campo vacío si no hay ninguna. Hoy `refresh`
-  y `distance_field` en `spelunky2rl/pathfinding.lua`.
 - [2026-10-01 21:29 @d1b3d70] Un `reset` con la pantalla de muerte ya en pantalla deja el juego atascado.
   Reproducido: `DefaultEnv`, `reset(seed=0, speedup=True, state_updates=50)` con las acciones de
   `actions(0, 300, 0.02)` (generador en `git show 7984d75:tests/integration/golden.py`, borrado
@@ -69,21 +46,6 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   (`terminated` al morir y `reset` enseguida), pero un entorno que siga dando pasos tras la muerte, o un
   usuario que tarde en resetear a velocidad real, sí. Sin diagnosticar: mirar `state.screen` /
   `state.pause` al recibir `reset` y si `warp` basta desde `SCREEN.DEATH`.
-- [2026-10-01 21:51 @d1b3d70] `main.lua`, `pf_distance`: la celda del jugador se calcula con
-  `math.floor(px - pf_xmin + 1)` y `math.floor(pf_ymin - py + 1)`, pero las entidades están centradas en
-  coordenadas enteras (el bloque `tx` ocupa de `tx-0.5` a `tx+0.5`; el jugador de pie tiene
-  `y = ty + 0.05`). Al jugador se le asigna la fila de encima de la suya, y en horizontal la casilla
-  `tx` cuando está entre `tx+0.5` y `tx+1` (ya sobre `tx+1`). Visto con la semilla 268: dentro de la
-  casilla de la puerta de salida (`x=7.22, y=94.05`, puerta en (7, 94)) `dist_to_goal` vale 1, no 0. Los
-  entornos lo compensan dando por bueno `dist_to_goal <= 1`. `get_map_info` sí usa `math.round`.
-  Arreglo: `util.round` en las dos coordenadas y revisar ese umbral en `envs/`. Cambia `dist_to_goal`.
-  Hoy `distance` en `spelunky2rl/pathfinding.lua`.
-- [2026-10-01 21:59 @3d4af91] `pathfinding.lua`, `distance`: comprueba que la fila existe (`if distances[row]`) pero
-  no la columna; con el jugador en una columna fuera del tablero, `distances[row][column]` es `nil` y
-  `nil > -1` es un error dentro de `POST_UPDATE` (Python espera hasta el timeout). Viene tal cual del
-  `pf_distance` de `main.lua`. Sin reproducir: hace falta que el jugador esté a la izquierda o a la
-  derecha de todos los bloques de suelo de la capa frontal. Arreglo: tratar la columna que falta como
-  la fila que falta (devolver `last_distance`).
 
 ## Improvements
 
@@ -109,12 +71,6 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   `config get/show`, y `make_launcher`/`doctor` lo leen como último recurso: `game_dir=` > variable de
   entorno > fichero. Podría cubrir también `launcher`, `image` y `renderer`. Actualizar la guía y
   `doctor` (que diga de dónde sale cada valor).
-- [2026-10-01 20:52 @2880e06] El mod Lua no informa de sus errores. `Connection.receive`
-  (`engine/protocol.py`) ya lanza `RuntimeError` con un mensaje `{"error": ...}` y
-  `docs/architecture.md` (sección "Lua Errors") dice que el Lua los envía, pero `main.lua` no lo hace
-  nunca: un error dentro de `POST_UPDATE` deja a Python esperando hasta el timeout sin explicación.
-  Envolver el cuerpo del callback en `xpcall` con `debug.traceback` y mandar `{"error": traza}` antes de
-  salir. Va en `on_post_update` de `spelunky2rl/session.lua`, con `protocol.send`.
 - [2026-10-01 20:52 @2880e06] `main.lua`, `get_info`: `powerups[value-545+1] = 1` usa el id numérico de
   `ITEM_POWERUP_PASTE`. Usar `ENT_TYPE.ITEM_POWERUP_PASTE` e ignorar los ids fuera de 545-562: hoy uno
   fuera de rango escribiría fuera de las 18 posiciones y `json.encode` dejaría de mandar una lista de 18.
