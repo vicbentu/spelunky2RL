@@ -93,3 +93,9 @@ This project would not be possible without the incredible work of the spelunky-f
 - **[modlunky2](https://github.com/spelunky-fyi/modlunky2)** - Provides the mod management infrastructure and tools that make setting up and running SpelunkyRL straightforward.
 
 Special thanks to the entire spelunky-fyi community for maintaining these excellent tools and fostering the Spelunky modding ecosystem.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Bundled third-party code keeps its own license: luasocket (MIT,
+`src/spelunky2rl/mod/lua/luasocket/license.txt`) and overlunky's `entities-hierarchy.md` (MIT).
+Spelunky 2 itself is not included: each user provides their own copy of the game.
