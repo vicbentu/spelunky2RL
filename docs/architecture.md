@@ -155,7 +155,8 @@ is registered only in `main.lua`. `luasocket/` is the vendored socket library.
 2. The countdown of the current command goes down by one. When it reaches 0 the mod *answers* that
    command, *blocks* until Python sends the next one, and *starts* it:
    - `reset` starts by releasing the input, forgetting the tiles and distances of the previous
-     episode (`pathfinding.reset`), warping to the level and applying the game options; it
+     episode (`pathfinding.reset`), closing the journal (the death screen opens it, and an open
+     journal keeps the new level paused), warping to the level and applying the game options; it
      is answered 60 frames later, once the level is loaded. Only then are the entities in
      `ent_types_to_destroy` killed and `hp`, `bombs`, `ropes` and `gold` set, right before the state
      is sent.

@@ -131,6 +131,35 @@ def test_reset_leaves_nothing_of_the_previous_level():
         env.close()
 
 
+def test_reset_from_the_death_screen():
+    """The death screen opens the journal, and a warp used to leave it open: the levels after it
+    stayed paused (the clock stopped, the player did not move), or the reset never answered."""
+    crouch, bomb, neutral, right = [1, 0, 0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 1, 0, 0, 0], [1, 1, 0, 0, 0, 0, 0, 0], [2, 1, 0, 0, 0, 0, 0, 0]
+    env = DefaultEnv(**FAST, hp=1)
+    try:
+        for wait in (28, 35, 150):  # steps after dying: on the death screen, coming in, long on it
+            env.reset(seed=0)
+            for action in [crouch] * 3 + [bomb]:  # crouched, the bomb is dropped at the player's feet
+                env.step(action)
+            for _ in range(100):
+                if env.last_gamestate["basic_info"]["health"] == 0:
+                    break
+                env.step(neutral)
+            assert env.last_gamestate["basic_info"]["health"] == 0, "the bomb did not kill the player"
+            for _ in range(wait):
+                env.step(neutral)
+
+            env.reset(seed=0)
+            start = env.last_gamestate["basic_info"]
+            for _ in range(20):
+                env.step(right)
+            end = env.last_gamestate["basic_info"]
+            assert end["time"] - start["time"] == 20 * env.frames_per_step, f"paused ({wait} steps after dying)"
+            assert end["x"] - start["x"] > 0.5, f"player did not move ({wait} steps after dying)"
+    finally:
+        env.close()
+
+
 @pytest.mark.parametrize("n", [4])
 def test_parallel_envs(n):
     before = set(running_containers())

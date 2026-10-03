@@ -35,17 +35,6 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   `map_info` sale todo a 0; `dist_to_goal` se busca en el tablero de la capa frontal. Leído en el
   código, sin reproducir (entrar por una puerta a la capa trasera y mirar `map_info`). Mismo origen que
   el de `count_dead_enemies`. Hoy `refresh` en `spelunky2rl/pathfinding.lua`.
-- [2026-10-01 21:29 @d1b3d70] Un `reset` con la pantalla de muerte ya en pantalla deja el juego atascado.
-  Reproducido: `DefaultEnv`, `reset(seed=0, speedup=True, state_updates=50)` con las acciones de
-  `actions(0, 300, 0.02)` (generador en `git show 7984d75:tests/integration/golden.py`, borrado
-  después): el jugador muere en el paso 146 y
-  `basic_info.time` deja de avanzar ~148 frames después (1083). Si se siguen mandando `step` hasta el
-  paso 300 y luego `reset`, los episodios siguientes devuelven siempre el mismo estado (`time` fijo, el
-  jugador no se mueve) y en una ejecución un `step` acabó en `TimeoutError` a los 60 s. Con `reset` en
-  el paso de la muerte o 20 pasos (120 frames) después, todo va bien. El uso normal no lo toca
-  (`terminated` al morir y `reset` enseguida), pero un entorno que siga dando pasos tras la muerte, o un
-  usuario que tarde en resetear a velocidad real, sí. Sin diagnosticar: mirar `state.screen` /
-  `state.pause` al recibir `reset` y si `warp` basta desde `SCREEN.DEATH`.
 - [2026-10-03 14:05 @766e650] Suite de integración: un `ConnectionResetError: [Errno 104]` en 1 de 6
   ejecuciones completas (`pytest tests/integration` con `SPELUNKY2RL_DEV_MOD`, árbol con los arreglos
   de `dist_to_goal` sin commitear); esa ejecución tardó 256 s en vez de ~89 s y las cinco siguientes

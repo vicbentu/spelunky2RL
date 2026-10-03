@@ -20,6 +20,8 @@ end
 -- Start a seeded run with one player and warp to world-level. The level is not there yet when
 -- this returns: the game loads it over the next frames.
 function M.start_level(seed, world, level, theme)
+    -- the death screen opens the journal and warp() leaves it open: the new level would stay paused
+    game_manager.journal_ui.state = 0
     state.quest_flags = 1
     set_adventure_seed(seed, seed)
     play_adventure()
