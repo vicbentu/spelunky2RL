@@ -535,15 +535,22 @@ frame = env.render()  # Returns numpy array
 
 ### Lua Errors
 
-Lua scripts can report errors:
+`session.on_post_update` runs inside `xpcall`. When anything in it fails, the mod sends the error
+with its traceback and exits the game; Python raises it from the `reset()` or `step()` that was
+waiting:
 
 ```python
 # Lua sends:
-{"error": "Invalid world number: 99"}
+{"error": "Mods/Packs/spelunky2rl/lua/spelunky2rl/session.lua:59: probe\nstack traceback:\n\t..."}
 
 # Python raises:
-RuntimeError: Invalid world number: 99
+RuntimeError: Mods/Packs/spelunky2rl/lua/spelunky2rl/session.lua:59: probe
+stack traceback:
+	...
 ```
+
+The environment cannot be used after that; create a new one. Errors in the other callbacks
+(`ON.PRE_UPDATE`, `ON.TRANSITION`, the render hooks) are not caught and only reach the game's log.
 
 ### Connection Errors
 

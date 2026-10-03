@@ -135,7 +135,7 @@ mecanismos no.
 Criterio: `DefaultEnv(bomb=3)` y `env.reset(bomb=3)` levantan `TypeError` que nombra `bomb`; test
 nuevo en `tests/unit/test_engine.py`; `python -m pytest` verde.
 
-### 2. Los errores de Lua llegan a Python  ·  pending
+### 2. Los errores de Lua llegan a Python  ·  done [2026-10-03 14:05]
 Criterio: con un `error("probe")` provisional en `on_post_update`, `env.reset(seed=0)` levanta
 `RuntimeError` cuyo mensaje contiene `probe` y una traza, en menos de 5 s. Comando y salida en
 `RUN.md`. `tests/integration` verde con el mod sin la sonda. `docs/architecture.md` "Lua Errors" dice

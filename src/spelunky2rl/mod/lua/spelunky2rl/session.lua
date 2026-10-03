@@ -55,7 +55,7 @@ local function start()
     end
 end
 
-function M.on_post_update()
+local function update()
     control.disable_pause()
 
     frames_left = frames_left - 1
@@ -74,6 +74,18 @@ function M.on_post_update()
             update_state()
         end
         fast_forwarding = false
+    end
+end
+
+-- An error in here would otherwise only reach the game's console, and Python would wait for an
+-- answer until its timeout. Send it instead (Python raises it as a RuntimeError) and exit: after an
+-- error the state of the mod cannot be trusted, and exiting is what losing the connection does too.
+function M.on_post_update()
+    local ok, trace = xpcall(update, debug.traceback)
+    if not ok then
+        print("spelunky2rl: " .. tostring(trace))
+        pcall(protocol.send, {error = tostring(trace)})  -- the socket itself may be what failed
+        os.exit()
     end
 end
 
