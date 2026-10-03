@@ -9,7 +9,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
 ## Next
 
 - [2026-09-28 12:53 @f5809d2] Reentrenar `get_to_exit` con el contrato corregido (terminated/truncated, seed
-  reproducible, entrada en `PRE_UPDATE`); el primer intento (`~/spelunkyrl-test/train_2026-09-28/`, 0 % de
+  reproducible, entrada en `PRE_UPDATE`); el primer intento (`~/Desktop/tmp/spelunky2rl-runs/train_2026-09-28/`, 0 % de
   éxito a 2,6 M pasos, 333 pasos/s) se hizo antes de arreglar la entrada.
 - [2026-09-28 12:53 @f5809d2] Comparar con los modelos de mayo de 2025: no están en esta máquina, hay que
   copiarlos desde el PC de Windows.
