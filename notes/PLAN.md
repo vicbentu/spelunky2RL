@@ -141,7 +141,7 @@ Criterio: con un `error("probe")` provisional en `on_post_update`, `env.reset(se
 `RUN.md`. `tests/integration` verde con el mod sin la sonda. `docs/architecture.md` "Lua Errors" dice
 de dónde sale el error.
 
-### 3. BFS desde todas las salidas; columna comprobada  ·  pending
+### 3. BFS desde todas las salidas; columna comprobada  ·  done [2026-10-03 14:05]
 Criterio: `pytest tests/unit/test_lua_pathfinding.py` verde con dos tests nuevos: dos metas (cada
 celda toma la más cercana) y lista vacía (todo -1). `grep -n "exits\[1\]" src/` no encuentra nada.
 

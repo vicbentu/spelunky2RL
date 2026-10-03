@@ -1,13 +1,14 @@
--- The floor tiles of the level and the distance from every cell to the exit.
+-- The floor tiles of the level and the distance from every cell to the nearest exit.
 --
 -- The board has one cell per tile position, row 1 at the top of the level. The distance is a BFS
--- from the exit, in 4 directions, over the cells that are not solid: it measures as if the player
+-- from the exits, in 4 directions, over the cells that are not solid: it measures as if the player
 -- could fly. Everything is rebuilt when floor tiles appear or are destroyed (mark_dirty).
 local M = {}
 
--- Cells from every cell of `board` ([row][column]: 0 = free, 1 = solid) to the goal, -1 where there
--- is no way. No game API in here, so it can be tested outside the game.
-function M.distance_field(board, goal_x, goal_y)
+-- Cells from every cell of `board` ([row][column]: 0 = free, 1 = solid) to the nearest of `goals`
+-- (a list of {column, row}), -1 where there is no way. A goal outside the board is ignored; with no
+-- goals every cell is -1. No game API in here, so it can be tested outside the game.
+function M.distance_field(board, goals)
     local field = {}
     for y = 1, #board do
         field[y] = {}
@@ -25,7 +26,12 @@ function M.distance_field(board, goal_x, goal_y)
         tail = tail + 1
     end
 
-    enqueue(goal_x, goal_y, 0)
+    for _, goal in ipairs(goals) do
+        local x, y = goal[1], goal[2]
+        if field[y] and field[y][x] == -1 then
+            enqueue(x, y, 0)
+        end
+    end
 
     while head < tail do
         local x, y = queue_x[head], queue_y[head]
@@ -41,11 +47,10 @@ function M.distance_field(board, goal_x, goal_y)
     return field
 end
 
-local tile_ids = {}          -- [layer][y][x] = entity type of the floor tile, in level coordinates
-local tile_count = 0         -- nothing is rebuilt while the number of floor tiles stays the same
-local left, top = 0, 0       -- level x of column 1 and level y of row 1
-local goal_x, goal_y = 0, 0  -- column and row of the exit
-local distances = {}         -- [row][column] = cells to the exit, -1 where there is no way
+local tile_ids = {}     -- [layer][y][x] = entity type of the floor tile, in level coordinates
+local tile_count = 0    -- nothing is rebuilt while the number of floor tiles stays the same
+local left, top = 0, 0  -- level x of column 1 and level y of row 1
+local distances = {}    -- [row][column] = cells to the nearest exit, -1 where there is no way
 local last_distance = -1
 local dirty = true
 
@@ -89,14 +94,13 @@ local function refresh()
         board[#board + 1] = row
     end
 
-    local exits = get_entities_by_type(ENT_TYPE.FLOOR_DOOR_EXIT)
-    if #exits > 0 then
-        local exit_x, exit_y = get_position(exits[1])
-        goal_x = math.floor(exit_x - left + 1)
-        goal_y = math.floor(top - exit_y + 1)
+    local goals = {}
+    for _, uid in ipairs(get_entities_by_type(ENT_TYPE.FLOOR_DOOR_EXIT)) do
+        local exit_x, exit_y = get_position(uid)
+        goals[#goals + 1] = {math.floor(exit_x - left + 1), math.floor(top - exit_y + 1)}
     end
 
-    distances = M.distance_field(board, goal_x, goal_y)
+    distances = M.distance_field(board, goals)
 end
 
 -- A floor tile appeared or is about to be destroyed.
@@ -114,20 +118,17 @@ function M.tile_ids()
     return tile_ids
 end
 
--- Distance from the cell at level position (x, y) to the exit. Outside the reachable cells, the
--- last distance that was valid (-1 if there never was one).
+-- Distance from the cell at level position (x, y) to the nearest exit. Outside the reachable
+-- cells, the last distance that was valid (-1 if there never was one).
 function M.distance(x, y)
     if dirty then
         refresh()
         dirty = false
     end
-    local column = math.floor(x - left + 1)
-    local row = math.floor(top - y + 1)
-
-    if distances[row] then
-        if distances[row][column] > -1 then
-            last_distance = distances[row][column]
-        end
+    local row = distances[math.floor(top - y + 1)]
+    local cell = row and row[math.floor(x - left + 1)]
+    if cell and cell > -1 then
+        last_distance = cell
     end
     return last_distance
 end
