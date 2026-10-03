@@ -174,7 +174,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
             truncated = True
 
         # Success: Reached exit
-        if gamestate.get("dist_to_goal", float("inf")) <= 1:
+        if gamestate.get("dist_to_goal", float("inf")) == 0:
             done = True
             reward_val += 10.0
             info["success"] = True

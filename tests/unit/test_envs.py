@@ -67,18 +67,22 @@ def test_enemy_killer_rewards_kills_positively(make_env):
     assert reward == pytest.approx(0.5)
 
 
-def test_get_to_exit_terminates_at_the_exit(make_env):
+@pytest.mark.parametrize("dist_to_goal, success", [(0, True), (1, False)])
+def test_get_to_exit_terminates_in_the_exit_cell_only(make_env, dist_to_goal, success):
+    """1 is the next cell, where the game does not let the player in: it used to count as success."""
     rng = np.random.default_rng(0)
 
     def respond(message, steps):
-        return make_gamestate(rng, dist_to_goal=10 if steps == 0 else 1, data_to_send=message["data_to_send"])
+        return make_gamestate(rng, dist_to_goal=10 if steps == 0 else dist_to_goal,
+                              data_to_send=message["data_to_send"])
 
     env = make_env(env_class("get_to_exit"), respond)
     env.reset(seed=0)
     _, reward, terminated, truncated, info = env.step(env.action_space.sample())
-    assert terminated is True and truncated is False
-    assert info["success"] is True
-    assert reward > 0
+    assert terminated is success and truncated is False
+    assert info["success"] is success
+    if success:
+        assert reward > 0
 
 
 @pytest.mark.parametrize("frames_per_step", [3, 6, 12])

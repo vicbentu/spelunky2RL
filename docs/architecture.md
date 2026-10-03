@@ -179,7 +179,8 @@ is registered only in `main.lua`. `luasocket/` is the vendored socket library.
   cell. Tiles, exits and the player are centred on integer coordinates, so a cell is the rounded
   position, the same one `map_info` is centred on. When the player's cell cannot reach an exit, or
   the level has none, the last valid distance of the episode is sent again (-1 if there has not
-  been one).
+  been one). Standing, 0 means within half a cell of the door's centre; the game lets the player in
+  from up to ~0.75 cells away (measured over 5 seeds in 1-1), so `== 0` is the built-in envs' success.
 - The tile table and the distances are rebuilt before the next state is sent whenever a floor tile
   has appeared or been destroyed, and on every `reset`.
 

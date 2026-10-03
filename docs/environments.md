@@ -166,7 +166,7 @@ class CustomEnv(SpelunkyEnv):
         reward += gold_delta / 100.0
 
         # Keep original goal-reaching logic
-        if gamestate["dist_to_goal"] <= 1:
+        if gamestate["dist_to_goal"] == 0:
             reward += 10.0
             return reward, True, False, {"success": True}
 
@@ -416,7 +416,7 @@ class GoldRushEnv(SpelunkyRLEngine):
         reward += gold_delta / 100.0
 
         # Bonus for reaching exit
-        if gamestate["dist_to_goal"] <= 1:
+        if gamestate["dist_to_goal"] == 0:
             done = True
             reward += 10.0
             info["success"] = True
@@ -559,7 +559,7 @@ reward = -0.01
 reward += (last_gamestate["dist_to_goal"] - gamestate["dist_to_goal"]) * 0.1
 
 # Goal bonus (sparse)
-if gamestate["dist_to_goal"] <= 1:
+if gamestate["dist_to_goal"] == 0:
     reward += 10.0
 ```
 

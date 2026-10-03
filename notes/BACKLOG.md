@@ -141,10 +141,3 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   diferencia de distancias) no es el problema: es una diferencia de potencial y no cambia la política
   óptima. Mirar solo si el reentrenamiento (ver Next) se atasca: contar cuántos episodios acaban por
   este corte y dónde está el jugador.
-- [2026-10-03 14:14 @ee6951a] Umbral de éxito `dist_to_goal <= 1` en `envs/get_to_exit.py` l. 70,
-  `default_environment.py` l. 177 y `template_environment.py` l. 180. Compensaba la celda mal
-  calculada (dentro de la puerta llegaba 1); desde d615b49 dentro de la puerta es 0 y `<= 1` significa
-  "en la puerta o en una casilla contigua", también la de encima o la de debajo. Opciones: dejarlo;
-  `== 0` (solo la casilla de la puerta; mi recomendación para `get_to_exit`); `win == 1` (salir del
-  nivel de verdad: exige la acción "puerta", que `GetToExit` no tiene, `action_to_input` la deja a 0).
-  Decidirlo antes del reentreno (ver Next): cambiarlo después invalida la comparación entre ejecuciones.

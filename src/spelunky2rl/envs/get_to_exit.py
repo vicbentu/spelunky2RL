@@ -67,7 +67,7 @@ class SpelunkyEnv(SpelunkyRLEngine):
             # reward_val -= 5
 
         # Level completed
-        if gamestate["dist_to_goal"] <= 1:
+        if gamestate["dist_to_goal"] == 0:
             done = True
             reward_val += (((60*90) - gamestate["basic_info"]["time"]) / (60*90))*5
             info["success"] = True
