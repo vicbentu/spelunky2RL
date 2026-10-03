@@ -3,10 +3,12 @@
 SPELUNKY2RL_LAUNCHER picks the launcher (default: docker on Linux).
 """
 
+import math
 import subprocess
 import time
 
 import gymnasium as gym
+import numpy as np
 import pytest
 
 from spelunky2rl.envs.default_environment import SpelunkyEnv as DefaultEnv
@@ -74,6 +76,33 @@ def test_same_seed_same_level():
             firsts.append(env.last_gamestate["dist_to_goal"])
             env.reset(seed=7)
         assert firsts[0] == firsts[1]
+    finally:
+        env.close()
+
+
+def test_dist_to_goal_follows_the_player_cell():
+    """Between two steps dist_to_goal changes by at most the cells the player moved, with the same
+    parity: same cell, same distance; next cell, one more or one less. The distance used to be
+    read from the cell above (and often one to the left), where it froze against ceilings."""
+    env = GetToExit(**FAST, god_mode=True)
+
+    def cell_and_distance():
+        info = env.last_gamestate["basic_info"]
+        return math.floor(info["x"] + 0.5), math.floor(info["y"] + 0.5), env.last_gamestate["dist_to_goal"]
+
+    try:
+        for seed in range(4):
+            actions = np.random.default_rng(seed).integers(0, [3, 3, 2], size=(300, 3))
+            env.reset(seed=seed)
+            x, y, distance = cell_and_distance()
+            for step, action in enumerate(actions):
+                env.step(action)
+                new_x, new_y, new_distance = cell_and_distance()
+                moved, change = abs(new_x - x) + abs(new_y - y), abs(new_distance - distance)
+                assert change <= moved and (moved - change) % 2 == 0, (
+                    f"seed {seed} step {step}: cell ({x}, {y}) -> ({new_x}, {new_y}), "
+                    f"dist_to_goal {distance} -> {new_distance}")
+                x, y, distance = new_x, new_y, new_distance
     finally:
         env.close()
 

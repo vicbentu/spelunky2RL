@@ -145,7 +145,7 @@ de dónde sale el error.
 Criterio: `pytest tests/unit/test_lua_pathfinding.py` verde con dos tests nuevos: dos metas (cada
 celda toma la más cercana) y lista vacía (todo -1). `grep -n "exits\[1\]" src/` no encuentra nada.
 
-### 4. Coordenadas redondeadas  ·  pending
+### 4. Coordenadas redondeadas  ·  done [2026-10-03 14:05]
 Criterio: semilla 268, jugador dentro de la puerta de salida: `dist_to_goal == 0` (hoy 1). Test de
 integración nuevo con el invariante de celda (§3), rojo antes del cambio y verde después. Entrada en
 `QUESTIONS.md` → *Para responder* sobre el umbral `<= 1`. `tests/integration` verde.

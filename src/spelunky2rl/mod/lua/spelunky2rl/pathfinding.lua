@@ -1,9 +1,15 @@
 -- The floor tiles of the level and the distance from every cell to the nearest exit.
 --
--- The board has one cell per tile position, row 1 at the top of the level. The distance is a BFS
--- from the exits, in 4 directions, over the cells that are not solid: it measures as if the player
--- could fly. Everything is rebuilt when floor tiles appear or are destroyed (mark_dirty).
+-- The board has one cell per tile position, row 1 at the top of the level. Tiles, exits and the
+-- player are centred on integer coordinates, so the cell of a position is its rounded x and y. The
+-- distance is a BFS from the exits, in 4 directions, over the cells that are not solid: it measures
+-- as if the player could fly. Everything is rebuilt when floor tiles appear or are destroyed
+-- (mark_dirty).
+local util = require("spelunky2rl.util")
+
 local M = {}
+
+local round = util.round
 
 -- Cells from every cell of `board` ([row][column]: 0 = free, 1 = solid) to the nearest of `goals`
 -- (a list of {column, row}), -1 where there is no way. A goal outside the board is ignored; with no
@@ -66,7 +72,7 @@ local function refresh()
 
     for _, uid in ipairs(tiles) do
         local tile = get_entity(uid)
-        local tx, ty = math.floor(tile.x), math.floor(tile.y)
+        local tx, ty = round(tile.x), round(tile.y)
         local layer = tile.layer
 
         tile_ids[layer] = tile_ids[layer] or {}
@@ -97,7 +103,7 @@ local function refresh()
     local goals = {}
     for _, uid in ipairs(get_entities_by_type(ENT_TYPE.FLOOR_DOOR_EXIT)) do
         local exit_x, exit_y = get_position(uid)
-        goals[#goals + 1] = {math.floor(exit_x - left + 1), math.floor(top - exit_y + 1)}
+        goals[#goals + 1] = {round(exit_x) - left + 1, top - round(exit_y) + 1}
     end
 
     distances = M.distance_field(board, goals)
@@ -125,8 +131,8 @@ function M.distance(x, y)
         refresh()
         dirty = false
     end
-    local row = distances[math.floor(top - y + 1)]
-    local cell = row and row[math.floor(x - left + 1)]
+    local row = distances[top - round(y) + 1]
+    local cell = row and row[round(x) - left + 1]
     if cell and cell > -1 then
         last_distance = cell
     end
