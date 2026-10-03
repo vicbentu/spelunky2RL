@@ -143,7 +143,7 @@ shows everything the mod attaches to:
 | `control.lua` | starting a level (warp, themes), start values, destroying entities, game options, the pause flag, skipping the render | `ON.RENDER_PRE_GAME`, `ON.RENDER_PRE_HUD` |
 | `input.lua` | the input held for the agent, `manual_control` | `ON.PRE_UPDATE` |
 | `observations.lua` | the player's last values, the `win` flag; builds the game state | `ON.TRANSITION` |
-| `pathfinding.lua` | the floor tile table and the distance field to the exit | spawn and destruction of floor tiles |
+| `pathfinding.lua` | the floor tile table and the distance field to the nearest exit | spawn and destruction of floor tiles |
 | `util.lua` | `round`, `safe` | |
 
 Every module returns a table and keeps its state in locals: the mod defines no globals. A callback
@@ -154,7 +154,8 @@ is registered only in `main.lua`. `luasocket/` is the vendored socket library.
 1. The pause flag is cleared, so the game can never sit in the pause menu.
 2. The countdown of the current command goes down by one. When it reaches 0 the mod *answers* that
    command, *blocks* until Python sends the next one, and *starts* it:
-   - `reset` starts by releasing the input, warping to the level and applying the game options; it
+   - `reset` starts by releasing the input, forgetting the tiles and distances of the previous
+     episode (`pathfinding.reset`), warping to the level and applying the game options; it
      is answered 60 frames later, once the level is loaded. Only then are the entities in
      `ent_types_to_destroy` killed and `hp`, `bombs`, `ropes` and `gold` set, right before the state
      is sent.
@@ -173,11 +174,14 @@ is registered only in `main.lua`. `luasocket/` is the vendored socket library.
   replaces it. `reset` and `close` release it. With `manual_control` the agent's actions are ignored.
 - `map_info` is 11 rows (top to bottom) of 21 tile types around the player, 0 where there is no floor
   tile. `entity_info` is a list of `[dx, dy, vel_x, vel_y, type, face_left, held type]`.
-- `dist_to_goal` counts cells to the exit through the ones that are not solid, in 4 directions, as
-  if the player could fly. When the player's cell cannot reach the exit, the last valid distance is
-  sent again (-1 if there has not been one).
-- The tile table and the distances are rebuilt when a floor tile has appeared or been destroyed
-  *and* the number of floor tiles has changed.
+- `dist_to_goal` counts cells from the player's cell to the nearest exit (a level can have several)
+  through the ones that are not solid, in 4 directions, as if the player could fly: 0 in the exit's
+  cell. Tiles, exits and the player are centred on integer coordinates, so a cell is the rounded
+  position, the same one `map_info` is centred on. When the player's cell cannot reach an exit, or
+  the level has none, the last valid distance of the episode is sent again (-1 if there has not
+  been one).
+- The tile table and the distances are rebuilt before the next state is sent whenever a floor tile
+  has appeared or been destroyed, and on every `reset`.
 
 **Changing the mod**: point `SPELUNKY2RL_DEV_MOD` at `src/spelunky2rl/mod/lua` to run your copy
 without rebuilding the image, and check it with `tests/integration`. The BFS of `pathfinding.lua`
