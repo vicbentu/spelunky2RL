@@ -47,11 +47,11 @@ SpelunkyRL bridges Python-based RL frameworks with Spelunky 2 through a multi-la
 
 1. **Python Layer** (`SpelunkyRLEngine`)
    - Implements Gymnasium interface
-   - Manages game process lifecycle
+   - Manages the game's lifecycle through a launcher
    - Handles socket communication
    - Processes observations and rewards
 
-2. **Lua Layer** (injected scripts)
+2. **Lua Layer** (the mod in `mod/lua/`, run by Overlunky inside the game)
    - Extracts game state via overlunky API
    - Receives and executes actions
    - Sends data back to Python
@@ -64,7 +64,7 @@ SpelunkyRL bridges Python-based RL frameworks with Spelunky 2 through a multi-la
 
 ### SpelunkyRLEngine (core.py)
 
-The base class that all environments inherit from. Located in `spelunkyRL/engine/core.py`.
+The base class that all environments inherit from. Located in `src/spelunky2rl/engine/core.py`.
 
 #### Key Responsibilities
 
@@ -90,58 +90,114 @@ The base class that all environments inherit from. Located in `spelunkyRL/engine
 #### Initialization Flow
 
 ```python
-def __init__(self, spelunky_dir, playlunky_dir, **kwargs):
-    # 1. Store configuration
-    self.spelunky_dir = spelunky_dir
-    self.playlunky_dir = playlunky_dir
+def __init__(self, game_dir=None, launcher="auto", renderer="auto", **kwargs):
+    # 1. Store configuration; kwargs become default reset options (an unknown one is a TypeError)
     self.reset_options = kwargs
-
-    # 2. Launch game and establish connection
+    # 2. Pick a launcher: Docker by default (or wine / a Launcher instance)
+    self.launcher = make_launcher(launcher, game_dir, renderer=renderer)
+    # 3. Launch the game and wait for the mod to connect and say hello
     self._game_init()
 ```
 
-The `_game_init()` method:
+`_game_init()`:
 
-```python
-def _game_init(self):
-    # 1. Create load_order.txt (tells Playlunky to load spelunkyRL)
-    # 2. Create server socket on random port
-    # 3. Set environment variable with port number
-    # 4. Launch playlunky_launcher.exe
-    # 5. Wait for Lua script to connect
-    # 6. Find Spel2.exe process
-    # 7. Get window handle for frame grabbing
-    # 8. Register cleanup on exit
-```
+1. Listens on `127.0.0.1` on a random free port.
+2. Inside `launcher.starting()` (which holds the Playlunky cache lock on a first start):
+   `launcher.start(port)`, then accepts the connection while polling `launcher.is_running()`.
+   If the game dies before connecting it is relaunched, up to `max_launch_attempts`, all within
+   `startup_timeout`. Errors include the launcher's recent output.
+3. Reads the mod's hello and checks the protocol version (`engine/protocol.py`).
+4. If `render_enabled`, asks the launcher for a frame source.
 
-**Socket setup**:
-```python
-self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-self.server_socket.bind(('127.0.0.1', 0))  # Random available port
-self.server_socket.listen(1)
-port = self.server_socket.getsockname()[1]
-os.environ["Spelunky_RL_Port"] = str(port)  # Lua script reads this
-```
+### Launchers (engine/launchers/)
 
-**Process discovery**:
-```python
-# Wait for playlunky to launch Spel2.exe
-parent = psutil.Process(self.launcher_process.pid)
-children = parent.children(recursive=True)
-for child in children:
-    if child.name().startswith("Spel2"):
-        self.game_process = child
-```
+A launcher starts one game instance that connects to the given port, reports whether it is still
+running, and tears it down. The port reaches the Lua mod through the `Spelunky_RL_Port` environment
+variable, and it is also how a launcher finds *its* `Spel2.exe` among several instances.
+
+| Launcher | Where | How |
+|---|---|---|
+| `DockerLauncher` | Linux (default) | `docker run --rm --network host` of the game image per env; game mounted at `/game:ro`; `--gpus all` when available |
+| `WineLauncher` | Linux, no Docker | host Wine, one Xvfb, instance dir and prefix copy per env (`scripts/setup_wine.sh`) |
+
+Docker and Wine run each instance in a directory assembled over the read-only game folder
+(`engine/assemble.py`, `docker/entrypoint.sh`): symlinks to the game files, real copies of the few
+files the game writes, Goldberg's `steam_api64.dll`, Overlunky, the ini templates, and a
+`Mods/Packs` with only the `spelunky2rl` pack. Playlunky's asset cache (`Mods/Packs/.db`) lives in
+`~/.cache/spelunky2rl/playlunky/<image>/<game build>/` and is shared by all instances.
+
+The pack only holds `lua/`: Playlunky writes inside mod folders and hangs on read-only packs that
+contain images. `meta.unsafe` scripts (needed for luasocket) always start disabled in Playlunky, so
+Overlunky autoruns `main.lua` (`autorun_scripts`, `script_dir`, `enable_unsafe_scripts` in
+`overlunky.ini`).
+
+### The Lua mod (mod/lua/)
+
+Overlunky runs `main.lua`, which only hooks the modules in `spelunky2rl/` to the game. Reading it
+shows everything the mod attaches to:
+
+| Module | Owns | Hooked to |
+|---|---|---|
+| `protocol.lua` | the socket, the hello, `PROTOCOL_VERSION` and `MOD_VERSION` | connects when the script loads |
+| `session.lua` | the last command from Python, the frame countdown, the simulated frames | `ON.POST_UPDATE` |
+| `control.lua` | starting a level (warp, themes), start values, destroying entities, game options, the pause flag, skipping the render | `ON.RENDER_PRE_GAME`, `ON.RENDER_PRE_HUD` |
+| `input.lua` | the input held for the agent, `manual_control` | `ON.PRE_UPDATE` |
+| `observations.lua` | the player's last values, the `win` flag; builds the game state | `ON.TRANSITION` |
+| `pathfinding.lua` | the floor tile table and the distance field to the nearest exit | spawn and destruction of floor tiles |
+| `util.lua` | `round`, `safe` | |
+
+Every module returns a table and keeps its state in locals: the mod defines no globals. A callback
+is registered only in `main.lua`. `luasocket/` is the vendored socket library.
+
+**One logic frame** (`session.on_post_update`):
+
+1. The pause flag is cleared, so the game can never sit in the pause menu.
+2. The countdown of the current command goes down by one. When it reaches 0 the mod *answers* that
+   command, *blocks* until Python sends the next one, and *starts* it:
+   - `reset` starts by releasing the input, forgetting the tiles and distances of the previous
+     episode (`pathfinding.reset`), closing the journal (the death screen opens it, and an open
+     journal keeps the new level paused), warping to the level and applying the game options; it
+     is answered 60 frames later, once the level is loaded. Only then are the entities in
+     `ent_types_to_destroy` killed and `hp`, `bombs`, `ropes` and `gold` set, right before the state
+     is sent.
+   - `step` starts by holding the action and is answered `frames` frames later.
+   - `close` releases the input, restores the game speed and exits the game. So does a lost connection.
+3. With `speedup`, `update_state()` runs `state_updates` more logic frames. Each of them fires
+   `ON.POST_UPDATE` again and goes through steps 1 and 2: commands are received and answered inside
+   that loop.
+
+**Details that environments rely on**:
+
+- `win` is 1 in exactly one state, the first one sent after the player leaves through the exit.
+- While there is no player, `health` is 0 and every other player field keeps its last value; a
+  `step` received then does not change the held input.
+- The input is written to the game before every logic frame (`ON.PRE_UPDATE`) until the next `step`
+  replaces it. `reset` and `close` release it. With `manual_control` the agent's actions are ignored.
+- `map_info` is 11 rows (top to bottom) of 21 tile types around the player, 0 where there is no floor
+  tile. `entity_info` is a list of `[dx, dy, vel_x, vel_y, type, face_left, held type]`.
+- `dist_to_goal` counts cells from the player's cell to the nearest exit (a level can have several)
+  through the ones that are not solid, in 4 directions, as if the player could fly: 0 in the exit's
+  cell. Tiles, exits and the player are centred on integer coordinates, so a cell is the rounded
+  position, the same one `map_info` is centred on. When the player's cell cannot reach an exit, or
+  the level has none, the last valid distance of the episode is sent again (-1 if there has not
+  been one). Standing, 0 means within half a cell of the door's centre; the game lets the player in
+  from up to ~0.75 cells away (measured over 5 seeds in 1-1), so `== 0` is the built-in envs' success.
+- The tile table and the distances are rebuilt before the next state is sent whenever a floor tile
+  has appeared or been destroyed, and on every `reset`.
+
+**Changing the mod**: point `SPELUNKY2RL_DEV_MOD` at `src/spelunky2rl/mod/lua` to run your copy
+without rebuilding the image, and check it with `tests/integration`. The BFS of `pathfinding.lua`
+has unit tests that run with the system's Lua (`tests/unit/test_lua_pathfinding.py`).
 
 ### Reset Mechanism
 
 ```python
-def reset(self, seed=None, **kwargs):
+def reset(self, seed=None, options=None, **kwargs):
     # 1. Call parent reset (handles RNG seeding)
     super().reset(seed=seed)
 
-    # 2. Send reset command to Lua
-    self._game_reset(seed=seed, **(self.reset_options | kwargs))
+    # 2. Send reset command to Lua; an option _game_reset does not know is a TypeError
+    self._game_reset(seed=seed, **(self.reset_options | (options or {}) | kwargs))
 
     # 3. Receive initial gamestate
     gamestate = self._receive_dict()
@@ -248,36 +304,21 @@ All messages are JSON objects sent over TCP, terminated with `\n`:
 }
 ```
 
-### Send Implementation
+### Connection and handshake
 
-```python
-def _send_dict(self, payload):
-    json_str = json.dumps(payload) + "\n"
-    self.server.sendall(json_str.encode("utf-8"))
+`engine/protocol.py` holds the framing: one JSON object per line, buffered reads, a per-step timeout
+(`step_timeout`, raises `TimeoutError`), `ConnectionError` on EOF and `RuntimeError` for
+`{"error": ...}` messages from Lua.
+
+Right after connecting, the mod sends:
+
+```json
+{"hello": {"protocol": 1, "mod": "0.1.0"}}
 ```
 
-### Receive Implementation
-
-```python
-def _receive_dict(self):
-    buffer = b""
-    # Read until newline
-    while not buffer.endswith(b"\n"):
-        data = self.server.recv(1024)
-        if not data:
-            raise ConnectionError("Disconnected from Spelunky Lua script")
-        buffer += data
-
-    # Parse JSON
-    json_str = buffer.decode("utf-8").strip()
-    dict = json.loads(json_str)
-
-    # Check for errors from Lua
-    if "error" in dict:
-        raise RuntimeError(dict["error"])
-
-    return dict
-```
+Python compares `protocol` with `PROTOCOL_VERSION` and fails with a message naming the image to
+use if they differ. Bump both constants (`engine/protocol.py` and `mod/lua/spelunky2rl/protocol.lua`) whenever a message
+changes shape; the image tag always equals the package version.
 
 ### Command Types
 
@@ -301,6 +342,8 @@ def _receive_dict(self):
     "level": 1
 }
 ```
+
+An optional `"theme"` (overlunky `THEME` id) overrides the default theme for `world`/`level`.
 
 The Lua script responds with the initial gamestate.
 
@@ -334,63 +377,24 @@ Signals the Lua script to clean up (though process is also terminated).
 
 ### Startup Sequence
 
-1. **Python creates socket server** on random port
-2. **Python sets environment variable** `Spelunky_RL_Port` with port number
-3. **Python launches Playlunky**
-4. **Playlunky launches Spelunky 2** with mods
-5. **Spelunky 2 loads spelunkyRL mod** (via `load_order.txt`)
-6. **Lua script reads port** from environment variable
-7. **Lua script connects** to Python socket
-8. **Python accepts connection** and proceeds
-
-### Process Monitoring
-
-The engine continuously monitors the game process:
-
-```python
-# In _game_init()
-while True:
-    try:
-        self.server, addr = self.server_socket.accept()
-        break  # Connection established
-    except socket.timeout:
-        pass
-
-    # Check if game process is still alive
-    if self.game_process is not None and self.game_process.is_running():
-        continue
-    else:
-        # Relaunch if crashed
-        if self.launcher_process.poll() is None:
-            # Still launching...
-            parent = psutil.Process(self.launcher_process.pid)
-            children = parent.children(recursive=True)
-            for child in children:
-                if child.name().startswith("Spel2"):
-                    self.game_process = child
-```
+1. **Python listens** on a random port on 127.0.0.1
+2. **The launcher starts the game** with `Spelunky_RL_Port=<port>` in its environment
+   (Docker: `docker run`; the entrypoint assembles the instance dir, starts Xvfb and Playlunky)
+3. **Playlunky injects itself and Overlunky**, loads the `spelunky2rl` pack
+4. **Overlunky autoruns `main.lua`**, which reads the port and connects
+5. **The mod sends its hello**; Python checks the protocol version
+6. From here on, every command from Python gets one gamestate back
 
 ### Shutdown Sequence
 
-```python
-def close(self):
-    # 1. Send close command to Lua
-    self._send_dict({"command": "close"})
+`close()` is idempotent and also registered with `atexit`:
 
-    # 2. Terminate game process
-    if hasattr(self, "game_process") and self.game_process is not None:
-        try:
-            self.game_process.terminate()
-            self.game_process.wait(timeout=5)
-        except Exception:
-            pass  # Best-effort cleanup
-```
+1. Sends `{"command": "close"}` (the mod releases input, resets the speedhack and exits the game)
+2. Closes the sockets and the frame source
+3. `launcher.stop()`: kills the container / the game, Wine server and Xvfb of this instance
 
-The `atexit` handler ensures cleanup even on exceptions:
-
-```python
-atexit.register(self.close)
-```
+If Python dies without closing, the mod sees the connection drop and exits the game itself, and
+the container goes with it (`--rm`).
 
 ## Data Flow
 
@@ -411,8 +415,8 @@ Lua Gamestate → Python gamestate dict → gamestate_to_observation() → Gymna
 
 # gamestate_to_observation() converts to:
 {
-    "char_state": np.int32(12),
-    "can_jump": np.int32(1),
+    "char_state": np.int64(12),
+    "can_jump": np.int64(1),
     "map_info": np.array([[0, 0, 1, ...], ...], dtype=np.int32)
 }
 ```
@@ -467,25 +471,27 @@ env = SpelunkyEnv(frames_per_step=6)  # Default: 6 frames (~10 actions/sec at 60
 
 ### State Updates (Speedup)
 
-`state_updates` skips rendering and some game updates:
+`state_updates` makes each rendered frame carry N extra logic frames:
 
 ```python
-env.reset(state_updates=200)
+env.reset(speedup=True, state_updates=200)
 ```
 
-**How it works** (Lua side):
-- For each RL step, run N "update only" frames
-- These frames update physics but skip rendering
-- Can increase speed 10-100x
+**How it works** (Lua side): in `ON.POST_UPDATE`, after the protocol work, the mod calls
+`update_state()` N times. Each call simulates one logic frame and fires `POST_UPDATE` again, which
+runs the protocol for that frame (so steps and replies happen inside the loop); a flag stops those
+nested calls from starting their own loop. Earlier versions recursed instead, N levels deep, which
+is why high values used to crash.
 
-**Limitations**:
-- Maximum value depends on requested data
-- Too high causes crashes (varies by environment)
-- Cannot use with `render_enabled=True`
+**Limits**: above ~50 the game is no longer the bottleneck; the per-step exchange with Python is.
+Do not combine with `render_enabled=True`: captured frames would skip most of the action.
+
+With `render_enabled=False` the mod also returns `true` from `ON.RENDER_PRE_GAME` and
+`ON.RENDER_PRE_HUD`, so the level is not drawn at all (+~20 % steps/s without `state_updates`).
 
 ### Speedup Flag
 
-`speedup=True` removes the 60 FPS cap:
+`speedup=True` makes the game run faster than real time (a 100x speedhack on the game's clock):
 
 ```python
 env.reset(speedup=True)
@@ -526,77 +532,41 @@ env = SpelunkyEnv(render_enabled=True)
 frame = env.render()  # Returns numpy array
 ```
 
-**Implementation** (Windows-specific):
+**Frame sources** (`engine/frames/`), created by the launcher only when `render_enabled=True`:
 
-```python
-# In _game_init()
-if self.render_enabled:
-    self.grabber = FrameGrabber(self.hwnd)  # Uses win32 APIs
-
-# In render()
-return self.grabber.get_frame()  # Screenshot via BitBlt
-```
-
-## Frame Grabber Implementation
-
-Located in `spelunkyRL/engine/utils/frame_grabber.py`.
-
-Uses Windows APIs to capture the game window:
-
-```python
-class FrameGrabber:
-    def __init__(self, hwnd):
-        self.hwnd = hwnd
-        # Get window DC, create compatible DC and bitmap
-
-    def get_frame(self):
-        # 1. BitBlt from window DC to memory DC
-        # 2. Convert to numpy array
-        # 3. Return RGB array
-```
-
-## Window Management
-
-Located in `spelunkyRL/engine/utils/window_management.py`.
-
-**Key functions**:
-
-```python
-def get_hwnd_for_pid(pid):
-    """Find window handle for a process ID"""
-    # Enumerate windows, match against PID
-
-def press_ctrlf4(hwnd):
-    """Send Ctrl+F4 to close Spelunky console window"""
-    # Used when console=False
-```
+- `X11FrameSource` (Docker, Wine): grabs the instance's Xvfb display with `mss`. With host networking
+  the container's X server is reachable from the host as display `:<port>`.
 
 ## Error Handling
 
 ### Lua Errors
 
-Lua scripts can report errors:
+`session.on_post_update` runs inside `xpcall`. When anything in it fails, the mod sends the error
+with its traceback and exits the game; Python raises it from the `reset()` or `step()` that was
+waiting:
 
 ```python
 # Lua sends:
-{"error": "Invalid world number: 99"}
+{"error": "Mods/Packs/spelunky2rl/lua/spelunky2rl/session.lua:59: probe\nstack traceback:\n\t..."}
 
 # Python raises:
-RuntimeError: Invalid world number: 99
+RuntimeError: Mods/Packs/spelunky2rl/lua/spelunky2rl/session.lua:59: probe
+stack traceback:
+	...
 ```
+
+The environment cannot be used after that; create a new one. Errors in the other callbacks
+(`ON.PRE_UPDATE`, `ON.TRANSITION`, the render hooks) are not caught and only reach the game's log.
 
 ### Connection Errors
 
-```python
-def _receive_dict(self):
-    data = self.server.recv(1024)
-    if not data:
-        raise ConnectionError("Disconnected from Spelunky Lua script")
-```
+A dropped connection raises `ConnectionError`; a game that stops answering raises `TimeoutError`
+after `step_timeout` seconds instead of blocking forever.
 
 ### Process Crashes
 
-The engine attempts to detect and restart crashed processes in `_game_init()`, but this is best-effort.
+During startup the game is relaunched up to `max_launch_attempts` times. After startup a crashed
+game shows up as a `ConnectionError` on the next step; create a new environment to continue.
 
 ## Logging
 
@@ -633,22 +603,20 @@ def log_step(self, gamestate):
 
 From `pyproject.toml`:
 
-- **gymnasium**: RL environment interface
-- **stable-baselines3**: RL algorithms (optional, for training)
-- **torch**: Deep learning (optional, for training)
-- **numpy**: Numerical operations
-- **pywin32**: Windows API access
-- **psutil**: Process management
+- **gymnasium**, **numpy**, **psutil**
+- **mss**: `render` extra, frame capture on Linux
+- **torch**, **stable-baselines3**, **sb3-contrib**: `train` extra, only for the examples
 
 ### System Dependencies
 
-- **Spelunky 2**: The game
-- **Playlunky**: Mod loader
-- **modlunky2**: Mod management
-- **overlunky**: Lua API (bundled with Playlunky)
+- **Spelunky 2**: your own copy of the game
+- Linux: **Docker** (and the NVIDIA Container Toolkit for GPU rendering). The image
+  (`docker/Dockerfile`) contains Wine, DXVK, Xvfb, Playlunky, Overlunky and the Goldberg emulator,
+  pinned in `docker/versions.env`.
+- Windows: not supported yet
 
 ## Next Steps
 
 - **[Getting Started](getting-started.md)** - Installation and basic usage
 - **[Environments Guide](environments.md)** - Create custom environments
-- **Lua Scripts** - Located in `lua/` folder (for advanced customization)
+- **Lua mod** - Located in `src/spelunky2rl/mod/lua/`; see [The Lua mod](#the-lua-mod-modlua)

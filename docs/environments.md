@@ -13,7 +13,17 @@ SpelunkyRL provides a flexible environment system built on [Gymnasium](https://g
 
 ## Pre-built Environments
 
-SpelunkyRL includes several ready-to-use environments in `spelunkyRL/environments/`:
+SpelunkyRL includes several ready-to-use environments in `src/spelunky2rl/envs/`. They are also
+registered with Gymnasium once `spelunky2rl` is imported:
+
+```python
+import gymnasium as gym
+import spelunky2rl  # registers the ids
+
+env = gym.make("spelunky2rl/GetToExit-v0", speedup=True, state_updates=200)
+# also: spelunky2rl/Default-v0, Dummy-v0, GoldGrabber-v0, EnemyKiller-v0
+# render_mode="rgb_array" enables render()
+```
 
 ### Dummy Environment
 
@@ -22,12 +32,9 @@ SpelunkyRL includes several ready-to-use environments in `spelunkyRL/environment
 The simplest environment - useful for testing and as a minimal starting point.
 
 ```python
-from spelunkyRL.environments.dummy_environment import SpelunkyEnv
+from spelunky2rl.envs.dummy_environment import SpelunkyEnv
 
-env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky"
-)
+env = SpelunkyEnv()  # game folder from SPELUNKY2RL_GAME_DIR, or game_dir="..."
 ```
 
 **Characteristics**:
@@ -60,11 +67,9 @@ Goal-reaching task where the agent navigates to the level exit as quickly as pos
 - Success/failure tracking in info dict
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     speedup=True,
     state_updates=200,
 )
@@ -85,9 +90,10 @@ Resource collection task where the agent collects as much gold as possible.
 **Action Space**: `[Movement X, Movement Y, Jump]`
 
 **Reward Function**:
-- Reward proportional to gold collected (delta_money / 1000.0)
+- Reward proportional to gold collected (delta_money / 500.0)
+- Distance shaping towards the nearest visible gold
 - Tracks total episode gold
-- 30-second time limit
+- 90-second time limit (never terminates, only truncates)
 
 **Features**:
 - Removes all enemies and traps
@@ -95,11 +101,9 @@ Resource collection task where the agent collects as much gold as possible.
 - Provides gold delta and cumulative tracking
 
 ```python
-from spelunkyRL.environments.gold_grabber import SpelunkyEnv
+from spelunky2rl.envs.gold_grabber import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
@@ -132,11 +136,9 @@ Combat-focused task where the agent must kill as many enemies as possible.
 - Filters entity info to only include enemy types (219-342)
 
 ```python
-from spelunkyRL.environments.enemy_killer import SpelunkyEnv
+from spelunky2rl.envs.enemy_killer import SpelunkyEnv
 
 env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
@@ -152,7 +154,7 @@ All custom environments inherit from `SpelunkyRLEngine`. You can either:
 If you want to modify just the reward function or observation space:
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
 class CustomEnv(SpelunkyEnv):
     def reward_function(self, gamestate, last_gamestate, action, info):
@@ -164,21 +166,19 @@ class CustomEnv(SpelunkyEnv):
         reward += gold_delta / 100.0
 
         # Keep original goal-reaching logic
-        if gamestate["dist_to_goal"] <= 1:
+        if gamestate["dist_to_goal"] == 0:
             reward += 10.0
             return reward, True, False, {"success": True}
 
         return reward, False, False, info
 
 env = CustomEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
 )
 ```
 
 ### Method 2: Create from Scratch
 
-See `spelunkyRL/environments/template_environment.py` for a fully commented template.
+See `src/spelunky2rl/envs/template_environment.py` for a fully commented template.
 
 ## Required Components
 
@@ -248,6 +248,11 @@ def reward_function(self, gamestate, last_gamestate, action, info):
     return float(reward), done, truncated, info
 ```
 
+`done` is Gymnasium's `terminated`: the task really ended (goal reached, failure). Use `truncated`
+for time limits and other cut-offs, and do not return `done or truncated` as `done`: learners like
+Stable-Baselines3 bootstrap the value of truncated states and would treat time limits as real endings.
+The engine sets `done` itself when the player dies or the level is completed.
+
 **Gamestate structure**:
 ```python
 {
@@ -293,8 +298,8 @@ def gamestate_to_observation(self, gamestate):
     observation = {}
 
     observation["map_info"] = np.array(gamestate["map_info"], dtype=np.int32)
-    observation["char_state"] = np.int32(gamestate["basic_info"]["char_state"])
-    observation["can_jump"] = np.int32(int(gamestate["basic_info"]["can_jump"]))
+    observation["char_state"] = np.int64(gamestate["basic_info"]["char_state"])
+    observation["can_jump"] = np.int64(int(gamestate["basic_info"]["can_jump"]))
 
     return observation
 ```
@@ -359,6 +364,10 @@ These can be overridden at runtime:
 obs, info = env.reset(hp=8, world=2)  # Override defaults
 ```
 
+`world` and `level` pick the starting level. The theme defaults to the one normally found there
+(Jungle for world 2, Tide Pool for world 4, Tiamat for 6-4, Hundun for 7-4); pass `theme` with an
+overlunky `THEME` id to get the alternative, e.g. `env.reset(world=2, theme=3)` for Volcana.
+
 ## Complete Example
 
 Here's a complete custom environment that rewards gold collection and goal-reaching:
@@ -367,7 +376,7 @@ Here's a complete custom environment that rewards gold collection and goal-reach
 import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Dict, Box, Discrete
-from spelunkyRL import SpelunkyRLEngine
+from spelunky2rl import SpelunkyRLEngine
 
 class GoldRushEnv(SpelunkyRLEngine):
     """Collect gold and reach the exit"""
@@ -407,7 +416,7 @@ class GoldRushEnv(SpelunkyRLEngine):
         reward += gold_delta / 100.0
 
         # Bonus for reaching exit
-        if gamestate["dist_to_goal"] <= 1:
+        if gamestate["dist_to_goal"] == 0:
             done = True
             reward += 10.0
             info["success"] = True
@@ -422,15 +431,13 @@ class GoldRushEnv(SpelunkyRLEngine):
     def gamestate_to_observation(self, gamestate):
         return {
             "map_info": np.array(gamestate["map_info"], dtype=np.int32),
-            "char_state": np.int32(np.clip(gamestate["basic_info"]["char_state"], 0, 22)),
-            "can_jump": np.int32(int(gamestate["basic_info"]["can_jump"])),
+            "char_state": np.int64(np.clip(gamestate["basic_info"]["char_state"], 0, 22)),
+            "can_jump": np.int64(int(gamestate["basic_info"]["can_jump"])),
             "gold": np.array([gamestate["basic_info"]["money"]], dtype=np.int32),
         }
 
 # Use it
 env = GoldRushEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky",
     speedup=True,
 )
 ```
@@ -552,7 +559,7 @@ reward = -0.01
 reward += (last_gamestate["dist_to_goal"] - gamestate["dist_to_goal"]) * 0.1
 
 # Goal bonus (sparse)
-if gamestate["dist_to_goal"] <= 1:
+if gamestate["dist_to_goal"] == 0:
     reward += 10.0
 ```
 
@@ -568,5 +575,5 @@ Common entity ranges (see [overlunky docs](https://spelunky-fyi.github.io/overlu
 ## Next Steps
 
 - **[Architecture Guide](architecture.md)** - Learn how the engine works internally
-- **Example Environments** - Study `spelunkyRL/environments/` for more examples
-- **Training Examples** - Check `spelunkyRL/examples/train_get_to_exit.py` for RL training
+- **Example Environments** - Study `src/spelunky2rl/envs/` for more examples
+- **Training Examples** - Check `examples/train_get_to_exit.py` for RL training

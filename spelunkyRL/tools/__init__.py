@@ -1,1 +1,0 @@
-from .id2name import id2name

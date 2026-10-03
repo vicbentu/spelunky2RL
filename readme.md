@@ -19,23 +19,24 @@ SpelunkyRL is a Reinforcement Learning environment for Spelunky 2, providing a s
 
 ### Installation
 
-1. Install [modlunky2](https://github.com/spelunky-fyi/modlunky2) and set up a modding copy of Spelunky 2
-2. Clone this repo into `Spelunky 2\Mods\Packs\`
-3. Install the package:
+The game runs headless in Docker on Linux, one container per environment (Windows: not implemented yet).
+Either way you need your own copy of Spelunky 2 (Steam is only needed to download it).
 
 ```bash
+git clone https://github.com/vicbentu/spelunky2RL.git && cd spelunky2RL
 pip install .
+spelunky2rl pull      # Linux: the game runtime image (Wine, Playlunky, Overlunky; not the game), or build it
+spelunky2rl doctor    # checks Docker, GPU, the image and your game folder
 ```
+
+See [Getting Started](docs/getting-started.md) for the details.
 
 ### Basic Usage
 
 ```python
-from spelunkyRL.environments.get_to_exit import SpelunkyEnv
+from spelunky2rl.envs.get_to_exit import SpelunkyEnv
 
-env = SpelunkyEnv(
-    spelunky_dir=r"C:\Path\To\Spelunky 2",
-    playlunky_dir=r"C:\Path\To\playlunky\nightly"
-)
+env = SpelunkyEnv(game_dir="/path/to/Spelunky 2")  # or set SPELUNKY2RL_GAME_DIR
 
 obs, info = env.reset()
 for _ in range(1000):
@@ -62,7 +63,7 @@ env.close()
 
 ## Examples
 
-Check `spelunkyRL/examples/` for complete examples:
+Check `examples/` for complete examples:
 
 - **`manual_control.py`** - Test environment with keyboard controls
 - **`train_get_to_exit.py`** - Train an agent with RecurrentPPO
@@ -74,8 +75,6 @@ Check `spelunkyRL/examples/` for complete examples:
 - [ ] **Implement more tasks**: specially, long-term planning tasks that require extended sequences of actions and strategic decision-making.
 
 - [ ] **Multi-agent scenarios**: both cooperative and competitive dynamics between multiple agents.
-
-- [ ] **Dockerization**: streamlining the setup process and improving performance for broader accessibility.
 
 - [ ] **Performance optimization**
 
