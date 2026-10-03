@@ -1,4 +1,5 @@
 import atexit
+import inspect
 import socket
 import time
 from collections import Counter
@@ -60,10 +61,15 @@ class SpelunkyRLEngine(gym.Env):
             render_enabled / render_mode: capture frames for render(); render_mode="rgb_array"
                 (as passed by gymnasium.make) is the same as render_enabled=True.
             launcher_options: extra keyword arguments for the launcher, e.g. {"image": ...}.
-            **kwargs: default reset options (see _game_reset).
+            **kwargs: default reset options (see _game_reset). An unknown one is a TypeError.
         """
 
         super().__init__()
+
+        known = set(inspect.signature(self._game_reset).parameters) - {"seed"}
+        unknown = sorted(set(kwargs) - known)
+        if unknown:
+            raise TypeError(f"Unknown reset options: {', '.join(unknown)}. Known: {', '.join(sorted(known))}")
 
         self.game_dir = game_dir or spelunky_dir
         self.frames_per_step = frames_per_step
@@ -90,11 +96,14 @@ class SpelunkyRLEngine(gym.Env):
         self,
         *,
         seed: Optional[int] = None,
+        options: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Tuple[Dict, Dict[str, Any]]:
+        """`options` (the gymnasium way) and `**kwargs` are both reset options for this episode
+        (see _game_reset); an unknown one is a TypeError."""
 
         super().reset(seed=seed)
-        self._game_reset(seed=seed, **(self.reset_options|kwargs))
+        self._game_reset(seed=seed, **(self.reset_options | (options or {}) | kwargs))
 
         gamestate = self._receive_dict()
         self.last_gamestate = gamestate
@@ -216,7 +225,6 @@ class SpelunkyRLEngine(gym.Env):
             theme: Optional[int] = None,
             time_ghost: bool = True,
             audio: bool = False,
-            **kwargs
         ) -> None:
 
         if seed is None:

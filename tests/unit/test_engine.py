@@ -49,6 +49,18 @@ def test_headless_defaults_reach_lua(make_env):
     assert env.fake_lua.messages[-1]["time_ghost"] is False
 
 
+def test_unknown_reset_option_is_rejected(make_env):
+    """`bomb=3` (for `bombs`) used to be dropped in silence."""
+    with pytest.raises(TypeError, match="bomb"):
+        make_env(DefaultEnv, bomb=3)
+    env = make_env(DefaultEnv)
+    with pytest.raises(TypeError, match="bomb"):
+        env.reset(seed=0, bomb=3)
+    with pytest.raises(TypeError, match="bomb"):
+        env.reset(seed=0, options={"bomb": 3})
+    assert not env.fake_lua.messages
+
+
 @pytest.mark.parametrize("action", [[2, 1, 1], (2, 1, 1), np.array([2, 1, 1])])
 def test_action_types(make_env, action):
     env = make_env(GetToExit)

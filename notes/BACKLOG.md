@@ -104,7 +104,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   ser un parámetro del usuario.
 - [2026-10-01 00:55 @7ce4428] Estandarizar el contrato de datos Python ↔ Lua (opciones y observación).
   Es un cambio de protocolo (subir `PROTOCOL_VERSION`). Hoy: las opciones de `reset` son una lista fija
-  en `_game_reset` (`engine/core.py`; los nombres desconocidos, ver Bugs); `data_to_send` es una lista
+  en `_game_reset` (`engine/core.py`; un nombre desconocido es `TypeError`); `data_to_send` es una lista
   de strings sin validar (`map_info`, `entity_info`, `dist_to_goal`, y `custom_info`, que siempre manda
   `""`); `step` lo lee con `getattr(self, "data_to_send", [])` y `reset` con `self.data_to_send`;
   `basic_info` va entero en cada paso aunque el entorno no lo use; formatos fijos (`map_info` 11x21,

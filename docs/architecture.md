@@ -91,7 +91,7 @@ The base class that all environments inherit from. Located in `src/spelunky2rl/e
 
 ```python
 def __init__(self, game_dir=None, launcher="auto", renderer="auto", **kwargs):
-    # 1. Store configuration; kwargs become default reset options
+    # 1. Store configuration; kwargs become default reset options (an unknown one is a TypeError)
     self.reset_options = kwargs
     # 2. Pick a launcher: Docker by default (or wine / a Launcher instance)
     self.launcher = make_launcher(launcher, game_dir, renderer=renderer)
@@ -186,12 +186,12 @@ has unit tests that run with the system's Lua (`tests/unit/test_lua_pathfinding.
 ### Reset Mechanism
 
 ```python
-def reset(self, seed=None, **kwargs):
+def reset(self, seed=None, options=None, **kwargs):
     # 1. Call parent reset (handles RNG seeding)
     super().reset(seed=seed)
 
-    # 2. Send reset command to Lua
-    self._game_reset(seed=seed, **(self.reset_options | kwargs))
+    # 2. Send reset command to Lua; an option _game_reset does not know is a TypeError
+    self._game_reset(seed=seed, **(self.reset_options | (options or {}) | kwargs))
 
     # 3. Receive initial gamestate
     gamestate = self._receive_dict()

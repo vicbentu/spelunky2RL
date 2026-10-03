@@ -41,6 +41,31 @@ borra; lo siguiente está en `BACKLOG.md` → *Next* (el reentreno de `get_to_ex
 7. **`_game_reset` acepta cualquier opción** (`engine/core.py`, l. 219 `**kwargs`): `bomb=3` en el
    constructor o en `reset()` se ignora en silencio y el episodio arranca con los valores por defecto.
 
+**Medido en el juego real** [2026-10-02 22:07 @766e650], antes de tocar nada: `GetToExit` en 1-1,
+`god_mode`, 31 semillas seguidas en un mismo entorno (268, 0..29) x 600 pasos de una política
+aleatoria sin bombas, con una copia del mod que además envía el valor del campo en la celda que usa
+el código y en la celda redondeada. Las cifras del punto 1 excluyen la semilla 29 (ver punto 3).
+Los porcentajes dependen de la política (la aleatoria pasa mucho tiempo contra paredes); los
+mecanismos no.
+
+- Punto 1, confirmado. El código usa la celda `(floor(x), ceil(y))`: en 18 030 pasos no hay ni un caso
+  que lo contradiga. Esa celda no es la del jugador en el 92 % de los pasos, y es sólida en el 38 %:
+  ahí `dist_to_goal` es el valor anterior, congelado. El valor enviado difiere del correcto en el
+  77 % de los pasos (de -5 a +6; en 2 o más, el 24 %). El 26 % del avance real ocurre con la
+  distancia congelada y se cobra después de golpe (hasta 9 en un paso). Ejemplo: semilla 8, pasos
+  577-582, andando bajo un techo: correcto 84 → 79, enviado 85 fijo, y luego 85 → 77 en un paso.
+- Con `round`, la celda del jugador es alcanzable en todos los pasos y el invariante de abajo (§3,
+  Tests) no falla nunca; con el código actual falla en el 28 % de los pasos.
+- Bloques y salidas están en coordenadas enteras exactas (parte fraccionaria máxima 0): `floor` y
+  `round` coinciden en ellos; el cambio ahí es solo robustez.
+- Punto 3, reproducido: las semillas 28 y 29 tienen 1108 bloques las dos. `reset(29)` tras un
+  episodio de la 28 no reconstruye: todo el episodio corre con `map_info`, tablero y salida de la
+  28 (en el arranque, el centro de `map_info` es `FLOOR_GENERIC` y no la puerta de entrada; errores
+  de hasta 35). 1 de los 30 `reset` que siguen a otro episodio. Con el punto 2 encima: el primer `dist_to_goal` de la 29 es 106, el
+  último de la 28.
+- Punto 2 solo, sin el 3: no visto en las 30 semillas restantes (la celda inicial siempre fue
+  alcanzable para el código actual).
+
 ## 2. Lo que no cambia
 
 - El protocolo (`PROTOCOL_VERSION = 1`): mismos mensajes, mismos campos, mismo formato de
@@ -93,14 +118,20 @@ borra; lo siguiente está en `BACKLOG.md` → *Next* (el reentreno de `get_to_ex
   desconocida → `TypeError` que nombra `bomb`).
 - Integración (`tests/integration/test_game.py`, con juego): `reset(B)` tras `reset(A)` + 50 pasos da
   el mismo `dist_to_goal` y `map_info` iniciales que `reset(B)` en un entorno recién creado. Es la
-  prueba de que nada del episodio anterior sobrevive (puntos 2 y 3).
+  prueba de que nada del episodio anterior sobrevive (puntos 2 y 3). A = 28, B = 29: con el mismo
+  recuento de bloques (1108) el test falla hoy; con dos semillas cualesquiera pasaría sin el arreglo.
+- Integración, invariante de celda (punto 1): en 1-1 (una salida), sin bombas, varias semillas y
+  acciones fijas; con la celda `(floor(x + 0.5), floor(y + 0.5))` calculada en Python a partir de
+  `basic_info`, entre dos pasos seguidos `|Δ dist_to_goal|` no supera el desplazamiento Manhattan de
+  la celda y tiene su misma paridad (celda igual → distancia igual; celda contigua → ±1). Solo usa
+  lo que el protocolo ya envía. Hoy falla; con `round` no.
 - A mano, anotado en `RUN.md`: semilla 268 con `manual_control`, dentro de la puerta
   `dist_to_goal == 0`; y un `error("probe")` metido a mano en `on_post_update` (sin commitear) hace
   que `env.reset()` levante `RuntimeError` con la traza en segundos, no un timeout a los 60 s.
 
 ## 4. Pasos
 
-### 1. `_game_reset` rechaza opciones desconocidas  ·  pending
+### 1. `_game_reset` rechaza opciones desconocidas  ·  done [2026-10-03 14:05]
 Criterio: `DefaultEnv(bomb=3)` y `env.reset(bomb=3)` levantan `TypeError` que nombra `bomb`; test
 nuevo en `tests/unit/test_engine.py`; `python -m pytest` verde.
 
@@ -115,11 +146,13 @@ Criterio: `pytest tests/unit/test_lua_pathfinding.py` verde con dos tests nuevos
 celda toma la más cercana) y lista vacía (todo -1). `grep -n "exits\[1\]" src/` no encuentra nada.
 
 ### 4. Coordenadas redondeadas  ·  pending
-Criterio: semilla 268, jugador dentro de la puerta de salida: `dist_to_goal == 0` (hoy 1). Entrada en
+Criterio: semilla 268, jugador dentro de la puerta de salida: `dist_to_goal == 0` (hoy 1). Test de
+integración nuevo con el invariante de celda (§3), rojo antes del cambio y verde después. Entrada en
 `QUESTIONS.md` → *Para responder* sobre el umbral `<= 1`. `tests/integration` verde.
 
 ### 5. Nada del episodio anterior sobrevive al `reset`  ·  pending
-Criterio: test de integración nuevo (`reset(B)` tras `reset(A)` + pasos == `reset(B)` en frío) verde;
+Criterio: test de integración nuevo (`reset(29)` tras `reset(28)` + pasos == `reset(29)` en frío),
+rojo antes del cambio y verde después;
 `grep -n tile_count src/` no encuentra nada; `tests/integration` completo verde.
 
 ### 6. Cierre  ·  pending
