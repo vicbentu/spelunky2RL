@@ -81,6 +81,15 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   deprecated and will be removed in a future release; use mss.MSS instead` (visto en
   `test_render_returns_game_frames` con mss 10.x). Cambiar a `mss.MSS(display=display)` y comprobar la
   versión mínima de `mss` que lo tiene para fijarla en el extra `render` de `pyproject.toml`.
+- [2026-10-03 15:11 @0880a21] El extra `train` de `pyproject.toml` (torch, stable-baselines3, sb3-contrib) no trae
+  `tensorboard`, y `examples/train_get_to_exit.py` pasa `tensorboard_log=`: con solo `.[train]` el
+  ejemplo falla al empezar `learn()` con `ImportError: Trying to log data to tensorboard but tensorboard
+  is not installed`. Añadir `"tensorboard"` al extra `train`.
+- [2026-10-03 15:26 @0880a21] `examples/record_video.py`: los vídeos salen con rojo y azul cambiados (la tierra de 1-1
+  sale azul). `env.render()` devuelve RGB (`engine/frames/x11.py`, `BGRA -> RGB`) y `cv2.VideoWriter`
+  espera BGR. Escribir `cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)`. Además usa `frames_per_step=2` y
+  `FPS = 30`: un modelo entrenado con `train_get_to_exit.py` (6) ve otro juego y el vídeo va a 1,5x;
+  con 6 pasos, `FPS = 10` es tiempo real.
 
 ## Ideas
 
