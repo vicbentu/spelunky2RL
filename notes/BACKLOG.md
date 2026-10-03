@@ -124,7 +124,7 @@ no se sabe si ni cómo). Se borran al hacerlas o descartarlas (git es el archivo
   aplicar `destroy_entities`/`set_start_values` y mandar el estado. Si a los 60 frames no hay jugador,
   `set_start_values` indexa `players[1]` (`nil`) y falla. Mirar si se puede esperar a que el nivel esté
   cargado (`state.screen == SCREEN.LEVEL` y `#players > 0`) en vez de contar frames, y cuánto acorta el
-  reset. De paso, revisar qué estado no se reinicia en `reset`: `last_distance` (ver Bugs), `transition`
+  reset. De paso, revisar qué estado no se reinicia en `reset`: `transition`
   y los últimos valores del jugador. Hoy `RESET_FRAMES`, `start` y `answer` en `spelunky2rl/session.lua`.
 - [2026-10-01 21:00 @2880e06] `get_to_exit` corta el episodio con -5 si la distancia mínima a la salida
   no mejora en 200 pasos (`envs/get_to_exit.py`, `no_improve_counter`; 20 s de juego con

@@ -150,7 +150,7 @@ Criterio: semilla 268, jugador dentro de la puerta de salida: `dist_to_goal == 0
 integración nuevo con el invariante de celda (§3), rojo antes del cambio y verde después. Entrada en
 `QUESTIONS.md` → *Para responder* sobre el umbral `<= 1`. `tests/integration` verde.
 
-### 5. Nada del episodio anterior sobrevive al `reset`  ·  pending
+### 5. Nada del episodio anterior sobrevive al `reset`  ·  done [2026-10-03 14:05]
 Criterio: test de integración nuevo (`reset(29)` tras `reset(28)` + pasos == `reset(29)` en frío),
 rojo antes del cambio y verde después;
 `grep -n tile_count src/` no encuentra nada; `tests/integration` completo verde.

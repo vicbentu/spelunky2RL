@@ -107,6 +107,30 @@ def test_dist_to_goal_follows_the_player_cell():
         env.close()
 
 
+def test_reset_leaves_nothing_of_the_previous_level():
+    """Seeds 28 and 29 have the same number of floor tiles (1108), which used to keep the tiles,
+    the distances and the exit of the previous level."""
+
+    def first_state(env, seed):
+        env.reset(seed=seed)
+        return env.last_gamestate["dist_to_goal"], env.last_gamestate["map_info"]
+
+    env = GetToExit(**FAST, god_mode=True)
+    try:
+        fresh = first_state(env, 29)
+    finally:
+        env.close()
+
+    env = GetToExit(**FAST, god_mode=True)
+    try:
+        env.reset(seed=28)
+        for i in range(50):
+            env.step([2 if (i // 25) % 2 == 0 else 0, 1, int(i % 8 == 0)])
+        assert first_state(env, 29) == fresh
+    finally:
+        env.close()
+
+
 @pytest.mark.parametrize("n", [4])
 def test_parallel_envs(n):
     before = set(running_containers())

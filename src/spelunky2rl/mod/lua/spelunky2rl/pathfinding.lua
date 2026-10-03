@@ -54,23 +54,20 @@ function M.distance_field(board, goals)
 end
 
 local tile_ids = {}     -- [layer][y][x] = entity type of the floor tile, in level coordinates
-local tile_count = 0    -- nothing is rebuilt while the number of floor tiles stays the same
 local left, top = 0, 0  -- level x of column 1 and level y of row 1
 local distances = {}    -- [row][column] = cells to the nearest exit, -1 where there is no way
 local last_distance = -1
 local dirty = true
 
 local function refresh()
-    local tiles = get_entities_by(0, MASK.FLOOR, 0)
-    if #tiles == tile_count then return end
-    tile_count = #tiles
+    dirty = false
 
     tile_ids = {}
     local solid = {}
     local right, bottom = -math.huge, math.huge
     left, top = math.huge, -math.huge
 
-    for _, uid in ipairs(tiles) do
+    for _, uid in ipairs(get_entities_by(0, MASK.FLOOR, 0)) do
         local tile = get_entity(uid)
         local tx, ty = round(tile.x), round(tile.y)
         local layer = tile.layer
@@ -114,9 +111,13 @@ function M.mark_dirty()
     dirty = true
 end
 
--- Tile types for the map observation, as [layer][y][x]. Brings them up to date first, but leaves
--- the tiles marked as changed: only distance() clears that. An environment that asks for map_info
--- and not for dist_to_goal therefore counts the floor tiles again on every step.
+-- A new episode starts: nothing of the previous one is kept.
+function M.reset()
+    last_distance = -1
+    dirty = true
+end
+
+-- Tile types for the map observation, as [layer][y][x].
 function M.tile_ids()
     if dirty then
         refresh()
@@ -125,11 +126,10 @@ function M.tile_ids()
 end
 
 -- Distance from the cell at level position (x, y) to the nearest exit. Outside the reachable
--- cells, the last distance that was valid (-1 if there never was one).
+-- cells, the last distance of this episode that was valid (-1 if there has not been one).
 function M.distance(x, y)
     if dirty then
         refresh()
-        dirty = false
     end
     local row = distances[top - round(y) + 1]
     local cell = row and row[round(x) - left + 1]

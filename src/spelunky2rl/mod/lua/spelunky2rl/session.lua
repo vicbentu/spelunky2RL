@@ -6,6 +6,7 @@ local protocol = require("spelunky2rl.protocol")
 local control = require("spelunky2rl.control")
 local input = require("spelunky2rl.input")
 local observations = require("spelunky2rl.observations")
+local pathfinding = require("spelunky2rl.pathfinding")
 
 local M = {}
 
@@ -34,6 +35,7 @@ end
 local function start()
     if command.command == "reset" then
         input.release()
+        pathfinding.reset()
         control.start_level(command.seed, command.world, command.level, command.theme)
         frames_left = RESET_FRAMES
 
